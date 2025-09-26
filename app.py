@@ -37,14 +37,9 @@ st.markdown(
     .stButton>button:hover {
         background-color: #163754;
     }
-    /* Select / Textarea / DataFrame */
-    .stSelectbox, .stTextArea, .stDataFrame {
+    /* Select / DataFrame */
+    .stSelectbox, .stDataFrame {
         border-radius: 10px;
-    }
-    textarea {
-        border-radius: 8px !important;
-        border: 1px solid var(--blue-mid) !important;
-        font-family: monospace !important;
     }
     </style>
     """,
@@ -113,7 +108,7 @@ if estado != "Todos":
     df_filtrado = df_filtrado[df_filtrado["Estado"] == estado]
 
 # ----------------------------
-# Resultados y área de correos
+# Resultados y botón copiar
 # ----------------------------
 st.markdown("---")
 st.subheader("Resultados de la consulta")
@@ -131,56 +126,51 @@ if not df_filtrado.empty:
     correos = df_filtrado["Correo"].dropna().tolist()
     correos_str = "\n".join(correos)
 
-    col_text, col_copy = st.columns([5, 1])
-    with col_text:
-        st.text_area("Correos", value=correos_str, height=200, key="correos_textarea")
-    with col_copy:
-        if correos_str.strip():
-            correos_json = json.dumps(correos_str)
-            # HTML/JS que copia al portapapeles con fallback
-            html = f"""
-            <div style="font-family: Arial, sans-serif;">
-              <button id="copy-btn" style="
-                  width:100%;
-                  padding:10px;
-                  font-size:14px;
-                  background-color:#1f4e79;
-                  color:#ffffff;
-                  border:none;
-                  border-radius:8px;
-                  font-weight:600;
-              ">Copiar</button>
-              <div id="msg" style="height:18px; font-size:13px; color:#0a3d62; margin-top:6px;"></div>
+    if correos_str.strip():
+        correos_json = json.dumps(correos_str)
+        html = f"""
+        <div style="font-family: Arial, sans-serif; margin-top:15px;">
+          <button id="copy-btn" style="
+              padding:10px 16px;
+              font-size:14px;
+              background-color:#1f4e79;
+              color:#ffffff;
+              border:none;
+              border-radius:8px;
+              font-weight:600;
+              cursor:pointer;
+          ">Copiar correos</button>
+          <div id="msg" style="height:18px; font-size:13px; color:#0a3d62; margin-top:6px;"></div>
 
-              <script>
-                const text = {correos_json};
-                const copyBtn = document.getElementById("copy-btn");
-                const msg = document.getElementById("msg");
+          <script>
+            const text = {correos_json};
+            const copyBtn = document.getElementById("copy-btn");
+            const msg = document.getElementById("msg");
 
-                copyBtn.addEventListener("click", async () => {{
-                  try {{
-                    await navigator.clipboard.writeText(text);
-                    msg.innerText = "Copiado";
-                  }} catch (e) {{
-                    try {{
-                      const ta = document.createElement("textarea");
-                      ta.value = text;
-                      document.body.appendChild(ta);
-                      ta.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(ta);
-                      msg.innerText = "Copiado (fallback)";
-                    }} catch (ee) {{
-                      msg.innerText = "No fue posible copiar automáticamente. Seleccione y use Ctrl+C.";
-                    }}
-                  }}
-                  setTimeout(()=>msg.innerText = "", 2500);
-                }});
-              </script>
-            </div>
-            """
-            components.html(html, height=90)
-        else:
-            st.write("No hay correos para copiar.")
+            copyBtn.addEventListener("click", async () => {{
+              try {{
+                await navigator.clipboard.writeText(text);
+                msg.innerText = "Copiado";
+              }} catch (e) {{
+                try {{
+                  const ta = document.createElement("textarea");
+                  ta.value = text;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                  msg.innerText = "Copiado (fallback)";
+                }} catch (ee) {{
+                  msg.innerText = "No fue posible copiar automáticamente. Use Ctrl+C.";
+                }}
+              }}
+              setTimeout(()=>msg.innerText = "", 2500);
+            }});
+          </script>
+        </div>
+        """
+        components.html(html, height=100)
+    else:
+        st.write("No hay correos para copiar.")
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
