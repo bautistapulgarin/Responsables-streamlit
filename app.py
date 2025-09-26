@@ -6,7 +6,7 @@ st.title("📊 Consulta de Responsables de Proyectos")
 @st.cache_data
 def load_data():
     # Cambia la ruta si pones el Excel en otra carpeta
-    return pd.read_excel("data/responsables.xlsx")
+    return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
 
 df = load_data()
 
