@@ -19,10 +19,6 @@ st.markdown(
             background-color: white !important;
         }
 
-
-    
-    <style>
-
     :root{
         --blue-dark: #0a3d62;
         --blue-mid: #1f4e79;
@@ -68,9 +64,8 @@ with col_logo:
     st.image("loading.png", width=100)  # 🔹 Logo reducido
 
 # ----------------------------
-# Carga de datos
+# Carga de datos (SIN caché)
 # ----------------------------
-@st.cache_data
 def load_data():
     return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
 
