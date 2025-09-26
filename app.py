@@ -237,7 +237,7 @@ if not df_filtrado.empty:
                       ta.style.display = "none";
                       msg.innerText = "Copiado (fallback)";
                     }} catch (ee) {{
-                      msg.innerText = "No fue posible copiar automáticamente. Use 'Seleccionar' y Ctrl+C.";
+                      msg.innerText = "No fue posible copiar automáticamente. Use '' y Ctrl+C.";
                     }}
                   }}
                   setTimeout(()=>msg.innerText = "", 2500);
