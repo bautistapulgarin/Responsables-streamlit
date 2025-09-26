@@ -55,16 +55,16 @@ st.markdown(
 )
 
 # ----------------------------
-# Encabezado con logo (pequeño)
+# Encabezado con logo
 # ----------------------------
 col_title, col_logo = st.columns([6, 1])
 with col_title:
     st.title("Consulta de Responsables de Proyectos")
 with col_logo:
-    st.image("loading.png", width=100)  # 🔹 Logo reducido
+    st.image("loading.png", width=100)
 
 # ----------------------------
-# Carga de datos (SIN caché)
+# Carga de datos
 # ----------------------------
 def load_data():
     return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
@@ -72,47 +72,47 @@ def load_data():
 df = load_data()
 
 # ----------------------------
-# Inicializar session_state para los filtros
+# Inicializar session_state
 # ----------------------------
 for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado"]:
     if filtro not in st.session_state:
-        st.session_state[filtro] = "Todos"
+        st.session_state[filtro] = []
 
 # Botón para restablecer filtros
 st.markdown("---")
 if st.button("Restablecer filtros"):
     for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado"]:
-        st.session_state[filtro] = "Todos"
+        st.session_state[filtro] = []
 
 # ----------------------------
-# Filtros en una fila
+# Filtros en una fila (multiselect)
 # ----------------------------
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    sucursal = st.selectbox("Sucursal", ["Todos"] + sorted(df["Sucursal"].dropna().unique().tolist()), key="sucursal")
+    sucursal = st.multiselect("Sucursal", sorted(df["Sucursal"].dropna().unique().tolist()), key="sucursal")
 with col2:
-    cluster = st.selectbox("Cluster", ["Todos"] + sorted(df["Cluster"].dropna().unique().tolist()), key="cluster")
+    cluster = st.multiselect("Cluster", sorted(df["Cluster"].dropna().unique().tolist()), key="cluster")
 with col3:
-    proyecto = st.selectbox("Proyecto", ["Todos"] + sorted(df["Proyecto"].dropna().unique().tolist()), key="proyecto")
+    proyecto = st.multiselect("Proyecto", sorted(df["Proyecto"].dropna().unique().tolist()), key="proyecto")
 with col4:
-    cargo = st.selectbox("Cargo", ["Todos"] + sorted(df["Cargo"].dropna().unique().tolist()), key="cargo")
+    cargo = st.multiselect("Cargo", sorted(df["Cargo"].dropna().unique().tolist()), key="cargo")
 with col5:
-    estado = st.selectbox("Estado", ["Todos"] + sorted(df["Estado"].dropna().unique().tolist()), key="estado")
+    estado = st.multiselect("Estado", sorted(df["Estado"].dropna().unique().tolist()), key="estado")
 
 # ----------------------------
 # Aplicar filtros
 # ----------------------------
 df_filtrado = df.copy()
-if sucursal != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["Sucursal"] == sucursal]
-if cluster != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["Cluster"] == cluster]
-if proyecto != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["Proyecto"] == proyecto]
-if cargo != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["Cargo"] == cargo]
-if estado != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["Estado"] == estado]
+if sucursal:
+    df_filtrado = df_filtrado[df_filtrado["Sucursal"].isin(sucursal)]
+if cluster:
+    df_filtrado = df_filtrado[df_filtrado["Cluster"].isin(cluster)]
+if proyecto:
+    df_filtrado = df_filtrado[df_filtrado["Proyecto"].isin(proyecto)]
+if cargo:
+    df_filtrado = df_filtrado[df_filtrado["Cargo"].isin(cargo)]
+if estado:
+    df_filtrado = df_filtrado[df_filtrado["Estado"].isin(estado)]
 
 # ----------------------------
 # Resultados y botón copiar
@@ -129,7 +129,6 @@ if not df_filtrado.empty:
         use_container_width=True,
     )
 
-    # Preparo la cadena de correos
     correos = df_filtrado["Correo"].dropna().tolist()
     correos_str = "\n".join(correos)
 
