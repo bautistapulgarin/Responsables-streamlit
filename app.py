@@ -48,7 +48,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Cargar datos siempre actualizados
+# Cargar datos SIEMPRE actualizados (sin cache)
 def load_data():
     return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
 
@@ -107,6 +107,21 @@ if not df_filtrado.empty:
         df_filtrado[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable", "FechaIngreso", "Estado", "Correo", "Celular"]],
         use_container_width=True
     )
+
+    # Campo de texto con correos y botón de copiar
+    correos = df_filtrado["Correo"].dropna().tolist()
+    correos_str = "\n".join(correos)
+
+    col_correos, col_boton = st.columns([6, 1])
+    with col_correos:
+        st.text_area("Correos", value=correos_str, height=200)
+    with col_boton:
+        st.download_button(
+            "Copiar correos",
+            data=correos_str,
+            file_name="correos.txt",
+            mime="text/plain"
+        )
+
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
-
