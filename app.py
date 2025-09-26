@@ -1,15 +1,29 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
-
-# Cargar datos
-@st.cache_data
-def load_data():
-    return pd.read_excel("ResponsablesPorProyecto.xlsx")
-
-df = load_data()
+import os
 
 st.title("📊 Consulta de Responsables por Proyecto")
+
+# ===============================
+# 🔹 Verificar archivos disponibles (opcional para debug)
+# ===============================
+st.sidebar.header("Debug: Archivos en directorio")
+st.sidebar.write(os.listdir())
+
+# ===============================
+# 🔹 Cargar datos
+# ===============================
+@st.cache_data
+def load_data():
+    # Cambia la ruta si lo pones en otra carpeta, por ejemplo "data/ResponsablesPorProyecto.xlsx"
+    return pd.read_excel("ResponsablesPorProyecto.xlsx")
+
+try:
+    df = load_data()
+except FileNotFoundError:
+    st.error("❌ No se encontró el archivo 'ResponsablesPorProyecto.xlsx'. Asegúrate de subirlo al repositorio en la raíz.")
+    st.stop()
 
 # ===============================
 # 🔹 Filtros con reset
@@ -28,13 +42,12 @@ else:
 if st.session_state.reset:
     sucursal = cluster = proyecto = cargo = None
 else:
-    sucursal = st.sidebar.selectbox("Sucursal", [""] + sorted(df["Sucursal"].unique()))
-    cluster = st.sidebar.selectbox("Cluster", [""] + sorted(df["Cluster"].unique()))
-    proyecto = st.sidebar.selectbox("Proyecto", [""] + sorted(df["Proyecto"].unique()))
-    cargo = st.sidebar.selectbox("Cargo", [""] + sorted(df["Cargo"].unique()))
+    sucursal = st.sidebar.selectbox("Sucursal", [""] + sorted(df["Sucursal"].dropna().unique()))
+    cluster = st.sidebar.selectbox("Cluster", [""] + sorted(df["Cluster"].dropna().unique()))
+    proyecto = st.sidebar.selectbox("Proyecto", [""] + sorted(df["Proyecto"].dropna().unique()))
+    cargo = st.sidebar.selectbox("Cargo", [""] + sorted(df["Cargo"].dropna().unique()))
 
 filtro = df.copy()
-
 if sucursal:
     filtro = filtro[filtro["Sucursal"] == sucursal]
 if cluster:
@@ -52,50 +65,40 @@ pregunta = st.text_input("Ejemplo: 'quién es el Director de obra del proyecto B
 
 def responder_pregunta(pregunta):
     pregunta = pregunta.lower()
+    temp = df.copy()
 
-    if "proyecto" in pregunta:
-        for p in df["Proyecto"].unique():
-            if p.lower() in pregunta:
-                temp = df[df["Proyecto"].str.lower() == p.lower()]
-                break
-        else:
-            return "❌ Proyecto no encontrado."
-    elif "sucursal" in pregunta:
-        for s in df["Sucursal"].unique():
-            if s.lower() in pregunta:
-                temp = df[df["Sucursal"].str.lower() == s.lower()]
-                break
-        else:
-            return "❌ Sucursal no encontrada."
-    elif "cluster" in pregunta:
-        for c in df["Cluster"].unique():
-            if c.lower() in pregunta:
-                temp = df[df["Cluster"].str.lower() == c.lower()]
-                break
-        else:
-            return "❌ Cluster no encontrado."
-    elif "gerencia" in pregunta or "gerente" in pregunta:
-        for g in df["Responsable"].unique():
-            if g.lower() in pregunta:
-                temp = df[df["Responsable"].str.lower() == g.lower()]
-                break
-        else:
-            return "❌ Gerencia/Gerente no encontrado."
-    else:
-        return "❌ No entendí la pregunta (usa palabras como proyecto, sucursal, cluster o gerente)."
-
-    # Buscar cargo
-    cargo_encontrado = None
-    for c in df["Cargo"].unique():
-        if c.lower() in pregunta:
-            cargo_encontrado = c
+    # Buscar proyecto
+    for p in df["Proyecto"].unique():
+        if p.lower() in pregunta:
+            temp = temp[temp["Proyecto"].str.lower() == p.lower()]
             break
 
-    if cargo_encontrado:
-        temp = temp[temp["Cargo"].str.lower() == cargo_encontrado.lower()]
+    # Buscar sucursal
+    for s in df["Sucursal"].unique():
+        if s.lower() in pregunta:
+            temp = temp[temp["Sucursal"].str.lower() == s.lower()]
+            break
+
+    # Buscar cluster
+    for c in df["Cluster"].unique():
+        if c.lower() in pregunta:
+            temp = temp[temp["Cluster"].str.lower() == c.lower()]
+            break
+
+    # Buscar cargo
+    for c in df["Cargo"].unique():
+        if c.lower() in pregunta:
+            temp = temp[temp["Cargo"].str.lower() == c.lower()]
+            break
+
+    # Buscar responsable
+    for r in df["Responsable"].unique():
+        if r.lower() in pregunta:
+            temp = temp[temp["Responsable"].str.lower() == r.lower()]
+            break
 
     if temp.empty:
-        return "❌ No se encontraron resultados."
+        return "❌ No se encontraron resultados para tu consulta."
 
     return temp
 
@@ -107,7 +110,7 @@ if pregunta:
     if isinstance(resultados, pd.DataFrame):
         st.success("✅ Resultados encontrados con consulta libre")
         st.dataframe(resultados)
-        filtro = resultados  # Para que el botón copiar correos funcione también
+        filtro = resultados  # Para botón copiar correos
     else:
         st.warning(resultados)
 elif not filtro.empty:
@@ -117,12 +120,10 @@ else:
     st.info("Usa los filtros de la izquierda o escribe una consulta arriba.")
 
 # ===============================
-# 🔹 Botón para copiar correos
+# 🔹 Botón para copiar correos al portapapeles
 # ===============================
 if not filtro.empty:
     correos = "; ".join(filtro["Correo"].dropna().unique())
-
-    # Botón que dispara copia al portapapeles
     if st.button("📋 Copiar correos al portapapeles"):
         components.html(
             f"""
@@ -133,4 +134,5 @@ if not filtro.empty:
             """,
             height=0,
         )
+
 
