@@ -8,118 +8,73 @@ def load_data():
 
 df = load_data()
 
-st.title("📊 Consulta de Responsables por Proyecto")
+st.title("🔎 Consulta de Responsables por Proyecto")
 
-# ===============================
-# 🔹 Filtros con reset
-# ===============================
-st.sidebar.header("Filtros")
-
-if "reset" not in st.session_state:
-    st.session_state.reset = False
-
-# Botón para restablecer filtros
-if st.sidebar.button("🔄 Restablecer filtros"):
-    st.session_state.reset = True
-else:
-    st.session_state.reset = False
-
-if st.session_state.reset:
-    sucursal = cluster = proyecto = cargo = None
-else:
-    sucursal = st.sidebar.selectbox("Sucursal", [""] + sorted(df["Sucursal"].unique()))
-    cluster = st.sidebar.selectbox("Cluster", [""] + sorted(df["Cluster"].unique()))
-    proyecto = st.sidebar.selectbox("Proyecto", [""] + sorted(df["Proyecto"].unique()))
-    cargo = st.sidebar.selectbox("Cargo", [""] + sorted(df["Cargo"].unique()))
-
-filtro = df.copy()
-
-if sucursal:
-    filtro = filtro[filtro["Sucursal"] == sucursal]
-if cluster:
-    filtro = filtro[filtro["Cluster"] == cluster]
-if proyecto:
-    filtro = filtro[filtro["Proyecto"] == proyecto]
-if cargo:
-    filtro = filtro[filtro["Cargo"] == cargo]
-
-# ===============================
-# 🔹 Campo de búsqueda libre
-# ===============================
-st.subheader("🔎 Consulta libre en lenguaje natural")
-pregunta = st.text_input("Ejemplo: 'quién es el Director de obra del proyecto Burdeos Ciudad La Salle'")
+# Campo de entrada libre
+pregunta = st.text_input("Haz tu consulta (ejemplo: 'quién es el Director de obra del proyecto Burdeos Ciudad La Salle')")
 
 def responder_pregunta(pregunta):
     pregunta = pregunta.lower()
 
+    # Buscar por proyecto
     if "proyecto" in pregunta:
-        for p in df["Proyecto"].unique():
-            if p.lower() in pregunta:
-                temp = df[df["Proyecto"].str.lower() == p.lower()]
+        for proyecto in df["Proyecto"].unique():
+            if proyecto.lower() in pregunta:
+                filtro = df[df["Proyecto"].str.lower() == proyecto.lower()]
                 break
         else:
-            return "❌ Proyecto no encontrado."
-    elif "sucursal" in pregunta:
-        for s in df["Sucursal"].unique():
-            if s.lower() in pregunta:
-                temp = df[df["Sucursal"].str.lower() == s.lower()]
-                break
-        else:
-            return "❌ Sucursal no encontrada."
-    elif "cluster" in pregunta:
-        for c in df["Cluster"].unique():
-            if c.lower() in pregunta:
-                temp = df[df["Cluster"].str.lower() == c.lower()]
-                break
-        else:
-            return "❌ Cluster no encontrado."
-    elif "gerencia" in pregunta or "gerente" in pregunta:
-        for g in df["Responsable"].unique():
-            if g.lower() in pregunta:
-                temp = df[df["Responsable"].str.lower() == g.lower()]
-                break
-        else:
-            return "❌ Gerencia/Gerente no encontrado."
-    else:
-        return "❌ No entendí la pregunta (usa palabras como proyecto, sucursal, cluster o gerente)."
+            return "❌ No encontré el proyecto en la base de datos."
 
-    # Buscar cargo
+    # Buscar por sucursal
+    elif "sucursal" in pregunta:
+        for sucursal in df["Sucursal"].unique():
+            if sucursal.lower() in pregunta:
+                filtro = df[df["Sucursal"].str.lower() == sucursal.lower()]
+                break
+        else:
+            return "❌ No encontré la sucursal en la base de datos."
+
+    # Buscar por cluster
+    elif "cluster" in pregunta:
+        for cluster in df["Cluster"].unique():
+            if cluster.lower() in pregunta:
+                filtro = df[df["Cluster"].str.lower() == cluster.lower()]
+                break
+        else:
+            return "❌ No encontré el cluster en la base de datos."
+
+    # Buscar por gerencia (campo HC o Responsable que contenga nombre de gerente)
+    elif "gerencia" in pregunta or "gerente" in pregunta:
+        for gerente in df["Responsable"].unique():
+            if gerente.lower() in pregunta:
+                filtro = df[df["Responsable"].str.lower() == gerente.lower()]
+                break
+        else:
+            return "❌ No encontré el gerente en la base de datos."
+
+    else:
+        return "❌ No entendí tu pregunta. Intenta incluir palabras como 'proyecto', 'sucursal', 'cluster' o 'gerente'."
+
+    # Buscar cargo dentro de la pregunta
     cargo_encontrado = None
-    for c in df["Cargo"].unique():
-        if c.lower() in pregunta:
-            cargo_encontrado = c
+    for cargo in df["Cargo"].unique():
+        if cargo.lower() in pregunta:
+            cargo_encontrado = cargo
             break
 
     if cargo_encontrado:
-        temp = temp[temp["Cargo"].str.lower() == cargo_encontrado.lower()]
+        filtro = filtro[filtro["Cargo"].str.lower() == cargo_encontrado.lower()]
 
-    if temp.empty:
-        return "❌ No se encontraron resultados."
+    if filtro.empty:
+        return "❌ No encontré responsables con esos criterios."
 
-    return temp
+    return filtro[["Sucursal", "Cluster", "Proyecto", "Cargo", "Responsable", "Correo", "Celular"]]
 
-# ===============================
-# 🔹 Resultados
-# ===============================
+# Procesar pregunta
 if pregunta:
-    resultados = responder_pregunta(pregunta)
-    if isinstance(resultados, pd.DataFrame):
-        st.success("✅ Resultados encontrados con consulta libre")
-        st.dataframe(resultados)
-        filtro = resultados  # Para que el botón copiar correos funcione también
+    respuesta = responder_pregunta(pregunta)
+    if isinstance(respuesta, pd.DataFrame):
+        st.write("### ✅ Resultados encontrados:")
+        st.dataframe(respuesta)
     else:
-        st.warning(resultados)
-elif not filtro.empty:
-    st.success("✅ Resultados por filtros")
-    st.dataframe(filtro)
-else:
-    st.info("Usa los filtros de la izquierda o escribe una consulta arriba.")
-
-# ===============================
-# 🔹 Botón para copiar correos
-# ===============================
-if not filtro.empty:
-    correos = "; ".join(filtro["Correo"].dropna().unique())
-    st.text_area("📧 Correos encontrados:", correos, height=100)
-    st.write("Copia y pega los correos desde aquí (Ctrl+C / Cmd+C).")
-
+        st.warning(respuesta)
