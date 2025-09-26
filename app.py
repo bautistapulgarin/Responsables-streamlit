@@ -1,14 +1,11 @@
 import streamlit as st
 import pandas as pd
 
-
 # Configurar la página para que abra en modo ancho
 st.set_page_config(
     page_title="Consulta de Responsables de Proyectos",
-    layout="wide"  # Esto activa el modo wide
+    layout="wide"
 )
-
-
 
 st.title("📊 Consulta de Responsables de Proyectos")
 
@@ -47,5 +44,21 @@ if estado != "Todos":
 st.subheader("🔍 Resultados de la consulta")
 if not df.empty:
     st.dataframe(df[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable", "FechaIngreso", "Estado", "Correo", "Celular"]])
+    
+    # Botón para copiar correos
+    if st.button("📋 Copiar todos los correos"):
+        correos = df["Correo"].dropna().tolist()
+        correos_str = ", ".join(correos)
+        # Componente HTML/JS para copiar al portapapeles
+        st.markdown(f"""
+            <input type="text" value="{correos_str}" id="emails" style="position:absolute; left:-1000px;">
+            <script>
+            var copyText = document.getElementById('emails');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            </script>
+            """, unsafe_allow_html=True)
+        st.success(f"✅ Se copiaron {len(correos)} correos al portapapeles.")
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
