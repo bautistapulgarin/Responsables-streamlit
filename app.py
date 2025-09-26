@@ -200,7 +200,7 @@ if not df_filtrado.empty:
                     border:1px solid #1f4e79;
                     border-radius:8px;
                     font-weight:600;
-                ">Seleccionar ()</button>
+                ">Seleccionar (Ctrl+C)</button>
 
                 <div id="msg" style="height:18px; font-size:13px; color:#0a3d62;"></div>
 
@@ -237,7 +237,7 @@ if not df_filtrado.empty:
                       ta.style.display = "none";
                       msg.innerText = "Copiado (fallback)";
                     }} catch (ee) {{
-                      msg.innerText = "No fue posible copiar automáticamente. Use '' y Ctrl+C.";
+                      msg.innerText = "No fue posible copiar automáticamente. Use 'Seleccionar' y Ctrl+C.";
                     }}
                   }}
                   setTimeout(()=>msg.innerText = "", 2500);
@@ -245,7 +245,7 @@ if not df_filtrado.empty:
 
                 selectBtn.addEventListener("click", () => {{
                   ta.style.display = "block";
-                  
+                  ta.value = text;
                   ta.focus();
                   ta.select();
                   msg.innerText = "Texto seleccionado. Presione Ctrl+C";
