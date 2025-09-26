@@ -245,7 +245,7 @@ if not df_filtrado.empty:
 
                 selectBtn.addEventListener("click", () => {{
                   ta.style.display = "block";
-                  ta.value = text;
+                  
                   ta.focus();
                   ta.select();
                   msg.innerText = "Texto seleccionado. Presione Ctrl+C";
