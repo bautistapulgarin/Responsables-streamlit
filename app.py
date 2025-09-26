@@ -98,7 +98,7 @@ if not df_filtrado.empty:
     with col_text:
         st.text_area("Correos", value=correos_str, height=200, key="correos_textarea")
     with col_copy:
-        if st.button("Copiar"):
+        if st.button("Copiar correos"):
             st.session_state["copied"] = correos_str
             st.success("Copiado en el portapapeles (usa Ctrl+C en el campo).")
 else:
