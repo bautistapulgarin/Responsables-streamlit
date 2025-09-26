@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
-from streamlit_clipboard import clipboard
 
-# Configurar la página en modo ancho
+# Configurar página
 st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
-
 st.title("📊 Consulta de Responsables de Proyectos")
 
 @st.cache_data
@@ -42,12 +40,19 @@ st.subheader("🔍 Resultados de la consulta")
 if not df.empty:
     st.dataframe(df[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable", "FechaIngreso", "Estado", "Correo", "Celular"]])
 
-    # Botón para copiar correos al portapapeles
+    # Botón para copiar correos usando HTML/JS
     correos = df["Correo"].dropna().tolist()
-    correos_str = ", ".join(correos)  # separados por coma, o "\n" si prefieres por línea
+    correos_str = ", ".join(correos)  # puedes cambiar a "\n".join(correos) si quieres salto de línea
 
     if st.button("📋 Copiar todos los correos al portapapeles"):
-        clipboard(correos_str)
+        st.markdown(f"""
+            <script>
+            function copyToClipboard(text) {{
+                navigator.clipboard.writeText(text);
+            }}
+            copyToClipboard(`{correos_str}`);
+            </script>
+            """, unsafe_allow_html=True)
         st.success(f"✅ Se copiaron {len(correos)} correos al portapapeles.")
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
