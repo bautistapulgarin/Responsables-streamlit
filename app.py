@@ -1,6 +1,15 @@
 import streamlit as st
 import pandas as pd
 
+
+# Configurar la página para que abra en modo ancho
+st.set_page_config(
+    page_title="Consulta de Responsables de Proyectos",
+    layout="wide"  # Esto activa el modo wide
+)
+
+
+
 st.title("📊 Consulta de Responsables de Proyectos")
 
 @st.cache_data
