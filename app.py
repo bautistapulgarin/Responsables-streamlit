@@ -74,18 +74,19 @@ df = load_data()
 # ----------------------------
 # Inicializar session_state
 # ----------------------------
-for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente"]:
+for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente", "responsable_texto"]:
     if filtro not in st.session_state:
-        st.session_state[filtro] = []
+        st.session_state[filtro] = [] if filtro != "responsable_texto" else ""
 
 # Botón para restablecer filtros
 st.markdown("---")
 if st.button("Restablecer filtros"):
     for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente"]:
         st.session_state[filtro] = []
+    st.session_state["responsable_texto"] = ""
 
 # ----------------------------
-# Filtros en una fila (multiselect)
+# Filtros en una fila (multiselect + texto)
 # ----------------------------
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 with col1:
@@ -99,24 +100,23 @@ with col4:
 with col5:
     estado = st.multiselect("Estado", sorted(df["Estado"].dropna().unique().tolist()), key="estado")
 with col6:
-    # Solo mostramos los responsables cuyo cargo es "Gerente de proyectos"
     gerentes_unicos = df.loc[df["Cargo"] == "Gerente de proyectos", "Responsable"].dropna().unique().tolist()
     gerente = st.multiselect("Gerente de proyectos", sorted(gerentes_unicos), key="gerente")
+
+# Campo abierto para buscar por responsable
+responsable_texto = st.text_input("🔎 Buscar por responsable (texto libre)", key="responsable_texto")
 
 # ----------------------------
 # Aplicar filtros
 # ----------------------------
 df_filtrado = df.copy()
 
-# Si se selecciona un gerente, se prioriza mostrar todos los proyectos donde esté
 if gerente:
     proyectos_del_gerente = df.loc[
         (df["Cargo"] == "Gerente de proyectos") & (df["Responsable"].isin(gerente)),
         "Proyecto"
     ].unique().tolist()
-
     df_filtrado = df[df["Proyecto"].isin(proyectos_del_gerente)]
-
 else:
     if sucursal:
         df_filtrado = df_filtrado[df_filtrado["Sucursal"].isin(sucursal)]
@@ -128,6 +128,12 @@ else:
         df_filtrado = df_filtrado[df_filtrado["Cargo"].isin(cargo)]
     if estado:
         df_filtrado = df_filtrado[df_filtrado["Estado"].isin(estado)]
+
+# 🔎 Filtro de texto abierto sobre "Responsable"
+if responsable_texto.strip():
+    df_filtrado = df_filtrado[
+        df_filtrado["Responsable"].str.contains(responsable_texto, case=False, na=False)
+    ]
 
 # ----------------------------
 # Resultados y botón copiar
@@ -195,3 +201,4 @@ if not df_filtrado.empty:
         st.write("No hay correos para copiar.")
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
+
