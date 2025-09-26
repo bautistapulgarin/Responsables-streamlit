@@ -6,9 +6,9 @@ import os
 st.title("📊 Consulta de Responsables por Proyecto")
 
 # ===============================
-# 🔹 Verificar archivos disponibles (opcional para debug)
+# 🔹 Debug: Archivos disponibles
 # ===============================
-st.sidebar.header("Debug: Archivos en directorio")
+st.sidebar.header("Debug: Archivos en la raíz")
 st.sidebar.write(os.listdir())
 
 # ===============================
@@ -16,7 +16,7 @@ st.sidebar.write(os.listdir())
 # ===============================
 @st.cache_data
 def load_data():
-    # Cambia la ruta si lo pones en otra carpeta, por ejemplo "data/ResponsablesPorProyecto.xlsx"
+    # Asegúrate de que tu archivo esté en la raíz del repo
     return pd.read_excel("ResponsablesPorProyecto.xlsx")
 
 try:
@@ -134,5 +134,3 @@ if not filtro.empty:
             """,
             height=0,
         )
-
-
