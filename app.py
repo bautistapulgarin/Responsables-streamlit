@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from streamlit_clipboard import clipboard
 
 # Configurar la página en modo ancho
 st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
@@ -40,16 +41,13 @@ if estado != "Todos":
 st.subheader("🔍 Resultados de la consulta")
 if not df.empty:
     st.dataframe(df[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable", "FechaIngreso", "Estado", "Correo", "Celular"]])
-    
-    # Crear archivo con los correos
+
+    # Botón para copiar correos al portapapeles
     correos = df["Correo"].dropna().tolist()
-    correos_str = "\n".join(correos)  # separados por salto de línea
-    st.download_button(
-        label="📥 Descargar todos los correos",
-        data=correos_str,
-        file_name="correos.txt",
-        mime="text/plain"
-    )
+    correos_str = ", ".join(correos)  # separados por coma, o "\n" si prefieres por línea
+
+    if st.button("📋 Copiar todos los correos al portapapeles"):
+        clipboard(correos_str)
+        st.success(f"✅ Se copiaron {len(correos)} correos al portapapeles.")
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
-
