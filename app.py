@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
+import json
 
 st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
 st.title("📊 Consulta de Responsables de Proyectos")
@@ -51,7 +52,7 @@ st.subheader("🔍 Resultados de la consulta")
 if not df_filtrado.empty:
     st.dataframe(df_filtrado[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable", "FechaIngreso", "Estado", "Correo", "Celular"]])
 
-    # Campo de texto con botón de copiar
+    # Campo de texto para mostrar los correos
     correos = df_filtrado["Correo"].dropna().tolist()
     correos_str = "\n".join(correos)
 
@@ -59,14 +60,41 @@ if not df_filtrado.empty:
     with col_text:
         st.text_area("📋 Copiar todos los correos desde aquí", value=correos_str, height=200, key="correos_area")
     with col_button:
-        copy_button = """
-        <button onclick="navigator.clipboard.writeText(document.getElementById('correos_area').value)">📋 Copiar</button>
-        <script>
-            const textarea = document.querySelector('textarea');
-            textarea.id = 'correos_area';
-        </script>
-        """
-        components.html(copy_button, height=50)
-
+        if correos_str.strip():
+            # json.dumps asegura que el string quede correctamente escapado para JS
+            correos_json = json.dumps(correos_str)
+            html = f"""
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+              <button id="copy-btn" style="width:100%; padding:8px; font-size:16px;">📋 Copiar</button>
+              <div id="msg" style="font-size:14px;color:green;height:18px;"></div>
+            </div>
+            <script>
+              const text = {correos_json};
+              const btn = document.getElementById('copy-btn');
+              btn.addEventListener('click', async () => {{
+                try {{
+                  await navigator.clipboard.writeText(text);
+                  document.getElementById('msg').innerText = 'Copiado ✅';
+                }} catch (err) {{
+                  // Fallback para navegadores que no permitan navigator.clipboard (intenta copy via textarea)
+                  try {{
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    document.getElementById('msg').innerText = 'Copiado (fallback) ✅';
+                  }} catch(e) {{
+                    document.getElementById('msg').innerText = 'No se pudo copiar automáticamente. Selecciona y presiona Ctrl+C.';
+                  }}
+                }}
+                setTimeout(()=>document.getElementById('msg').innerText='',2000);
+              }});
+            </script>
+            """
+            components.html(html, height=100)
+        else:
+            st.write("No hay correos para copiar.")
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
