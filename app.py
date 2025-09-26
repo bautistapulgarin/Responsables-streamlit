@@ -200,7 +200,7 @@ if not df_filtrado.empty:
                     border:1px solid #1f4e79;
                     border-radius:8px;
                     font-weight:600;
-                ">Seleccionar (Ctrl+C)</button>
+                ">Seleccionar ()</button>
 
                 <div id="msg" style="height:18px; font-size:13px; color:#0a3d62;"></div>
 
