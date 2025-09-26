@@ -10,7 +10,19 @@ st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="w
 
 st.markdown(
     """
+ <style>
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        .stApp {
+            background-color: white !important;
+        }
+
+
+    
     <style>
+
     :root{
         --blue-dark: #0a3d62;
         --blue-mid: #1f4e79;
