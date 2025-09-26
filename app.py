@@ -3,9 +3,60 @@ import pandas as pd
 import streamlit.components.v1 as components
 import json
 
+# --- CONFIGURACIÓN GENERAL ---
 st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
-st.title("📊 Consulta de Responsables de Proyectos")
 
+# Estilos CSS personalizados (colores sobrios, escala de azules, bordes redondeados)
+st.markdown("""
+    <style>
+        /* Fondo general */
+        .main {
+            background-color: #f4f8fb;
+        }
+        /* Títulos */
+        h1, h2, h3, h4 {
+            color: #0a3d62;
+            font-family: 'Arial', sans-serif;
+        }
+        /* Selectbox y botones */
+        .stSelectbox div[data-baseweb="select"] {
+            border-radius: 8px;
+            border: 1px solid #0a3d62;
+        }
+        .stButton button {
+            background-color: #0a3d62;
+            color: white;
+            border-radius: 8px;
+            padding: 8px 16px;
+            border: none;
+            font-weight: bold;
+        }
+        .stButton button:hover {
+            background-color: #3c6382;
+            color: white;
+        }
+        /* Dataframe */
+        .stDataFrame {
+            border-radius: 12px;
+            border: 1px solid #3c6382;
+        }
+        /* Textarea */
+        textarea {
+            border-radius: 8px !important;
+            border: 1px solid #3c6382 !important;
+            font-family: monospace !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- CABECERA CON LOGO ---
+header_col1, header_col2 = st.columns([6,1])
+with header_col1:
+    st.title("Consulta de Responsables de Proyectos")
+with header_col2:
+    st.image("loading.png", use_container_width=True)  # Logo actualizado
+
+# --- CARGA DE DATOS ---
 @st.cache_data
 def load_data():
     return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
@@ -18,7 +69,8 @@ for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado"]:
         st.session_state[filtro] = "Todos"
 
 # Botón para restablecer filtros
-if st.button("🔄 Restablecer filtros"):
+st.markdown("---")
+if st.button("Restablecer filtros"):
     for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado"]:
         st.session_state[filtro] = "Todos"
 
@@ -48,25 +100,33 @@ if cargo != "Todos":
 if estado != "Todos":
     df_filtrado = df_filtrado[df_filtrado["Estado"] == estado]
 
-st.subheader("🔍 Resultados de la consulta")
-if not df_filtrado.empty:
-    st.dataframe(df_filtrado[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable", "FechaIngreso", "Estado", "Correo", "Celular"]])
+# --- RESULTADOS ---
+st.markdown("---")
+st.subheader("Resultados de la consulta")
 
-    # Campo de texto para mostrar los correos
+if not df_filtrado.empty:
+    st.dataframe(
+        df_filtrado[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable", "FechaIngreso", "Estado", "Correo", "Celular"]],
+        use_container_width=True
+    )
+
+    # Campo de texto + botón copiar
     correos = df_filtrado["Correo"].dropna().tolist()
     correos_str = "\n".join(correos)
 
     col_text, col_button = st.columns([5, 1])
     with col_text:
-        st.text_area("📋 Copiar todos los correos desde aquí", value=correos_str, height=200, key="correos_area")
+        st.text_area("Correos", value=correos_str, height=200, key="correos_area")
     with col_button:
         if correos_str.strip():
-            # json.dumps asegura que el string quede correctamente escapado para JS
             correos_json = json.dumps(correos_str)
             html = f"""
             <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-              <button id="copy-btn" style="width:100%; padding:8px; font-size:16px;">📋 Copiar</button>
-              <div id="msg" style="font-size:14px;color:green;height:18px;"></div>
+              <button id="copy-btn" style="width:100%; padding:10px; font-size:14px;
+                background-color:#0a3d62; color:white; border:none; border-radius:8px; font-weight:bold;">
+                Copiar
+              </button>
+              <div id="msg" style="font-size:13px;color:green;height:18px;"></div>
             </div>
             <script>
               const text = {correos_json};
@@ -74,20 +134,15 @@ if not df_filtrado.empty:
               btn.addEventListener('click', async () => {{
                 try {{
                   await navigator.clipboard.writeText(text);
-                  document.getElementById('msg').innerText = 'Copiado ✅';
+                  document.getElementById('msg').innerText = 'Copiado';
                 }} catch (err) {{
-                  // Fallback para navegadores que no permitan navigator.clipboard (intenta copy via textarea)
-                  try {{
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                    document.getElementById('msg').innerText = 'Copiado (fallback) ✅';
-                  }} catch(e) {{
-                    document.getElementById('msg').innerText = 'No se pudo copiar automáticamente. Selecciona y presiona Ctrl+C.';
-                  }}
+                  const ta = document.createElement('textarea');
+                  ta.value = text;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                  document.getElementById('msg').innerText = 'Copiado';
                 }}
                 setTimeout(()=>document.getElementById('msg').innerText='',2000);
               }});
@@ -98,3 +153,4 @@ if not df_filtrado.empty:
             st.write("No hay correos para copiar.")
 else:
     st.warning("No se encontraron resultados con los filtros seleccionados.")
+
