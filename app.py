@@ -1,82 +1,54 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import streamlit.components.v1 as components
 import json
 
 # ----------------------------
-# Función de login estético
+# Configuración general
+# ----------------------------
+st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
+
+# ----------------------------
+# Pantalla de Login
 # ----------------------------
 def login_screen():
-    st.markdown(
-        """
-        <style>
-        .centered {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 90vh;
-            text-align: center;
-        }
-        .stButton>button {
-            background-color: #1f4e79;
-            color: white;
-            border-radius: 8px;
-            border: none;
-            padding: 10px 20px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .stButton>button:hover {
-            background-color: #163754;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    # Centramos contenido
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("loading.png", width=120)
 
-    # Contenedor centrado
-    with st.container():
-        st.markdown('<div class="centered">', unsafe_allow_html=True)
+        st.markdown(
+            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
+            unsafe_allow_html=True
+        )
 
-        st.image("loading.png", width=180)
-        st.markdown("### Acceso a la aplicación")
+        password = st.text_input("Contraseña", type="password")
 
-        password = st.text_input("Contraseña", type="password", key="password_input")
-
-        if st.button("Ingresar"):
+        if st.button("Ingresar", use_container_width=True):
             if password == st.secrets["password"]:
-                st.session_state["password_correct"] = True
+                st.session_state["logged_in"] = True
+                st.success("✅ Acceso concedido")
+                st.rerun()
             else:
                 st.error("❌ Contraseña incorrecta")
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
 # ----------------------------
-# Validar login
+# App principal
 # ----------------------------
-if "password_correct" not in st.session_state:
-    st.session_state["password_correct"] = False
-
-if not st.session_state["password_correct"]:
-    login_screen()
-else:
+def main_app():
     # ----------------------------
-    # Aquí empieza la app protegida
+    # Estilos personalizados
     # ----------------------------
-    st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
-
     st.markdown(
         """
-     <style>
-            body {
-                background-color: white !important;
-                color: black !important;
-            }
-            .stApp {
-                background-color: white !important;
-            }
+    <style>
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        .stApp {
+            background-color: white !important;
+        }
 
         :root{
             --blue-dark: #0a3d62;
@@ -108,25 +80,31 @@ else:
         .stSelectbox, .stDataFrame {
             border-radius: 10px;
         }
-        </style>
+    </style>
         """,
         unsafe_allow_html=True,
     )
 
-    # Encabezado
+    # ----------------------------
+    # Encabezado con logo
+    # ----------------------------
     col_title, col_logo = st.columns([6, 1])
     with col_title:
         st.title("Consulta de Responsables de Proyectos")
     with col_logo:
-        st.image("loading.png", width=100)
+        st.image("loading.png", width=80)
 
+    # ----------------------------
     # Carga de datos
+    # ----------------------------
     def load_data():
         return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
 
     df = load_data()
 
+    # ----------------------------
     # Inicializar session_state
+    # ----------------------------
     for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente", "responsable_texto"]:
         if filtro not in st.session_state:
             st.session_state[filtro] = [] if filtro != "responsable_texto" else ""
@@ -138,7 +116,9 @@ else:
             st.session_state[filtro] = []
         st.session_state["responsable_texto"] = ""
 
-    # Filtros en una fila
+    # ----------------------------
+    # Filtros
+    # ----------------------------
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         sucursal = st.multiselect("Sucursal", sorted(df["Sucursal"].dropna().unique().tolist()), key="sucursal")
@@ -154,10 +134,11 @@ else:
         gerentes_unicos = df.loc[df["Cargo"] == "Gerente de proyectos", "Responsable"].dropna().unique().tolist()
         gerente = st.multiselect("Gerente de proyectos", sorted(gerentes_unicos), key="gerente")
 
-    # Campo de búsqueda por texto
     responsable_texto = st.text_input("🔎 Buscar por responsable (texto libre)", key="responsable_texto")
 
+    # ----------------------------
     # Aplicar filtros
+    # ----------------------------
     df_filtrado = df.copy()
 
     if gerente:
@@ -178,13 +159,14 @@ else:
         if estado:
             df_filtrado = df_filtrado[df_filtrado["Estado"].isin(estado)]
 
-    # 🔎 Filtro de texto abierto sobre "Responsable"
     if responsable_texto.strip():
         df_filtrado = df_filtrado[
             df_filtrado["Responsable"].str.contains(responsable_texto, case=False, na=False)
         ]
 
+    # ----------------------------
     # Resultados
+    # ----------------------------
     st.markdown("---")
     st.subheader("Resultados de la consulta")
 
@@ -249,3 +231,13 @@ else:
     else:
         st.warning("No se encontraron resultados con los filtros seleccionados.")
 
+# ----------------------------
+# Ejecución principal
+# ----------------------------
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+
+if st.session_state["logged_in"]:
+    main_app()
+else:
+    login_screen()
