@@ -4,38 +4,67 @@ import streamlit.components.v1 as components
 import json
 
 # ----------------------------
-# Función de login
+# Función de login estético
 # ----------------------------
-def check_password():
-    """Devuelve True si la contraseña es correcta."""
-    def password_entered():
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # elimina la contraseña para no dejarla en memoria
-        else:
-            st.session_state["password_correct"] = False
+def login_screen():
+    st.markdown(
+        """
+        <style>
+        .centered {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 90vh;
+            text-align: center;
+        }
+        .stButton>button {
+            background-color: #1f4e79;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .stButton>button:hover {
+            background-color: #163754;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-    if "password_correct" not in st.session_state:
-        # Mostrar cuadro de contraseña por primera vez
-        st.text_input(
-            "Contraseña", type="password", on_change=password_entered, key="password"
-        )
-        return False
-    elif not st.session_state["password_correct"]:
-        # Contraseña incorrecta, se vuelve a mostrar el input
-        st.text_input(
-            "Contraseña", type="password", on_change=password_entered, key="password"
-        )
-        st.error("Contraseña incorrecta")
-        return False
-    else:
-        return True
+    # Contenedor centrado
+    with st.container():
+        st.markdown('<div class="centered">', unsafe_allow_html=True)
+
+        st.image("loading.png", width=180)
+        st.markdown("### Acceso a la aplicación")
+
+        password = st.text_input("Contraseña", type="password", key="password_input")
+
+        if st.button("Ingresar"):
+            if password == st.secrets["password"]:
+                st.session_state["password_correct"] = True
+            else:
+                st.error("❌ Contraseña incorrecta")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 # ----------------------------
-# Aquí empieza la app protegida
+# Validar login
 # ----------------------------
-if check_password():
-    # Configuración general
+if "password_correct" not in st.session_state:
+    st.session_state["password_correct"] = False
+
+if not st.session_state["password_correct"]:
+    login_screen()
+else:
+    # ----------------------------
+    # Aquí empieza la app protegida
+    # ----------------------------
     st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
 
     st.markdown(
@@ -219,3 +248,4 @@ if check_password():
             st.write("No hay correos para copiar.")
     else:
         st.warning("No se encontraron resultados con los filtros seleccionados.")
+
