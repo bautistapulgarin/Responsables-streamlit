@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import streamlit.components.v1 as components
 import json
@@ -6,17 +6,24 @@ import json
 # ----------------------------
 # Configuración general
 # ----------------------------
-st.set_page_config(page_title="Consulta de Responsables y Reporte de Avances", layout="wide")
+st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
 
 # ----------------------------
 # Pantalla de Login
 # ----------------------------
 def login_screen():
+    # Centramos contenido
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.image("loading.png", width=120)
-        st.markdown("<h2 style='text-align: center;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
+
+        st.markdown(
+            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
+            unsafe_allow_html=True
+        )
+
         password = st.text_input("Contraseña", type="password")
+
         if st.button("Ingresar", use_container_width=True):
             if password == st.secrets["password"]:
                 st.session_state["logged_in"] = True
@@ -26,64 +33,91 @@ def login_screen():
                 st.error("❌ Contraseña incorrecta")
 
 # ----------------------------
-# Función principal
+# App principal
 # ----------------------------
 def main_app():
+    # ----------------------------
+    # Estilos personalizados
+    # ----------------------------
+    st.markdown(
+        """
+    <style>
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        .stApp {
+            background-color: white !important;
+        }
 
-    # ----------------------------
-    # Estilos
-    # ----------------------------
-    st.markdown("""
-        <style>
         :root{
             --blue-dark: #0a3d62;
             --blue-mid: #1f4e79;
             --blue-light: #eaf3fb;
         }
-        .stApp {background-color: var(--blue-light);}
-        h1, h2, h3 {color: var(--blue-dark); font-family: Arial, sans-serif;}
-        .stButton>button {
-            background-color: var(--blue-mid); color: white;
-            border-radius: 8px; border: none; padding: 8px 12px; font-weight: 600;
+        /* Fondo */
+        .reportview-container, .main {
+            background-color: var(--blue-light);
         }
-        .stButton>button:hover {background-color: #163754;}
-        </style>
-    """, unsafe_allow_html=True)
+        /* Títulos */
+        .css-1d391kg h1, .css-1d391kg h2 {
+            color: var(--blue-dark);
+            font-family: "Arial", sans-serif;
+        }
+        /* Botones Streamlit */
+        .stButton>button {
+            background-color: var(--blue-mid);
+            color: white;
+            border-radius: 8px;
+            border: none;
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+        .stButton>button:hover {
+            background-color: #163754;
+        }
+        /* Select / DataFrame */
+        .stSelectbox, .stDataFrame {
+            border-radius: 10px;
+        }
+    </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # ----------------------------
-    # Encabezado
+    # Encabezado con logo
     # ----------------------------
     col_title, col_logo = st.columns([6, 1])
     with col_title:
-        st.title("Sistema de Consulta y Reportes")
+        st.title("Consulta de Responsables de Proyectos")
     with col_logo:
         st.image("loading.png", width=80)
 
     # ----------------------------
-    # Pestañas principales
+    # Tabs
     # ----------------------------
     tab1, tab2 = st.tabs(["📋 Responsables por Proyecto", "📈 Reporte de Avances"])
 
     # ======================================================
-    # 🟦 TAB 1: Responsables por Proyecto
+    # TAB 1: Responsables (original sin cambios)
     # ======================================================
     with tab1:
-        # Cargar datos
-        df = pd.read_excel("data/ResponsablesPorProyecto.xlsx")
+        def load_data():
+            return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
 
-        # Inicializar filtros
+        df = load_data()
+
         for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente", "responsable_texto"]:
             if filtro not in st.session_state:
                 st.session_state[filtro] = [] if filtro != "responsable_texto" else ""
 
-        # Botón para restablecer filtros
         st.markdown("---")
         if st.button("Restablecer filtros"):
             for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente"]:
                 st.session_state[filtro] = []
             st.session_state["responsable_texto"] = ""
 
-        # Filtros
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1:
             sucursal = st.multiselect("Sucursal", sorted(df["Sucursal"].dropna().unique().tolist()), key="sucursal")
@@ -101,8 +135,8 @@ def main_app():
 
         responsable_texto = st.text_input("🔎 Buscar por responsable (texto libre)", key="responsable_texto")
 
-        # Aplicar filtros
         df_filtrado = df.copy()
+
         if gerente:
             proyectos_del_gerente = df.loc[
                 (df["Cargo"] == "Gerente de proyectos") & (df["Responsable"].isin(gerente)),
@@ -126,7 +160,6 @@ def main_app():
                 df_filtrado["Responsable"].str.contains(responsable_texto, case=False, na=False)
             ]
 
-        # Resultados
         st.markdown("---")
         st.subheader("Resultados de la consulta")
 
@@ -134,7 +167,7 @@ def main_app():
             st.dataframe(
                 df_filtrado[
                     ["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable",
-                    "FechaIngreso", "Estado", "Correo", "Celular"]
+                     "FechaIngreso", "Estado", "Correo", "Celular"]
                 ],
                 use_container_width=True,
             )
@@ -168,13 +201,17 @@ def main_app():
                         await navigator.clipboard.writeText(text);
                         msg.innerText = "Copiado";
                       }} catch (e) {{
-                        const ta = document.createElement("textarea");
-                        ta.value = text;
-                        document.body.appendChild(ta);
-                        ta.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(ta);
-                        msg.innerText = "Copiado (fallback)";
+                        try {{
+                          const ta = document.createElement("textarea");
+                          ta.value = text;
+                          document.body.appendChild(ta);
+                          ta.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(ta);
+                          msg.innerText = "Copiado (fallback)";
+                        }} catch (ee) {{
+                          msg.innerText = "No fue posible copiar automáticamente. Use Ctrl+C.";
+                        }}
                       }}
                       setTimeout(()=>msg.innerText = "", 2500);
                     }});
@@ -188,21 +225,20 @@ def main_app():
             st.warning("No se encontraron resultados con los filtros seleccionados.")
 
     # ======================================================
-    # 🟩 TAB 2: Reporte de Avances
+    # TAB 2: Reporte de Avances
     # ======================================================
     with tab2:
-        st.subheader("📊 Reporte de Avances por Proyecto")
-
+        st.subheader("📈 Reporte de Avances")
         try:
             df_avances = pd.read_excel("data/ReporteAvances.xlsx")
             st.dataframe(df_avances, use_container_width=True)
         except FileNotFoundError:
-            st.error("❌ No se encontró el archivo 'data/ReporteAvances.xlsx'. Verifique la ruta.")
+            st.error("No se encontró el archivo 'data/ReporteAvances.xlsx'")
         except Exception as e:
-            st.error(f"⚠️ Error al cargar el archivo: {e}")
+            st.error(f"Error al cargar el archivo: {e}")
 
 # ----------------------------
-# Ejecución
+# Ejecución principal
 # ----------------------------
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
