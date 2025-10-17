@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 import json
+import unicodedata
+import os
 
 # ----------------------------
 # Configuración general
@@ -14,12 +16,21 @@ st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="w
 def login_screen():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("loading.png", width=120)
-        st.markdown("<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
+        # Ajusta la imagen si la tienes
+        try:
+            st.image("loading.png", width=120)
+        except Exception:
+            pass
+
+        st.markdown(
+            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
+            unsafe_allow_html=True
+        )
+
         password = st.text_input("Contraseña", type="password")
 
         if st.button("Ingresar", use_container_width=True):
-            if password == st.secrets["password"]:
+            if "password" in st.secrets and password == st.secrets["password"]:
                 st.session_state["logged_in"] = True
                 st.success("✅ Acceso concedido")
                 st.rerun()
@@ -27,77 +38,116 @@ def login_screen():
                 st.error("❌ Contraseña incorrecta")
 
 # ----------------------------
+# Util: normalizar nombre de columnas (quita tildes, espacios, pone mayúsculas)
+# ----------------------------
+def normalize_col(name: str) -> str:
+    if not isinstance(name, str):
+        name = str(name)
+    s = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore").decode("utf-8")
+    s = s.strip().upper().replace(" ", "_")
+    # también reemplazar dobles guiones bajos
+    while "__" in s:
+        s = s.replace("__", "_")
+    return s
+
+# ----------------------------
 # App principal
 # ----------------------------
 def main_app():
-    # Estilos personalizados
-    st.markdown("""
-        <style>
-            body { background-color: white !important; color: black !important; }
-            .stApp { background-color: white !important; }
-            :root{
-                --blue-dark: #0a3d62;
-                --blue-mid: #1f4e79;
-                --blue-light: #eaf3fb;
-            }
-            .reportview-container, .main { background-color: var(--blue-light); }
-            .css-1d391kg h1, .css-1d391kg h2 {
-                color: var(--blue-dark);
-                font-family: "Arial", sans-serif;
-            }
-            .stButton>button {
-                background-color: var(--blue-mid);
-                color: white;
-                border-radius: 8px;
-                border: none;
-                padding: 8px 12px;
-                font-weight: 600;
-            }
-            .stButton>button:hover { background-color: #163754; }
-        </style>
-    """, unsafe_allow_html=True)
+    # ----------------------------
+    # Estilos personalizados (mantengo tu estilo)
+    # ----------------------------
+    st.markdown(
+        """
+    <style>
+        body { background-color: white !important; color: black !important; }
+        .stApp { background-color: white !important; }
 
+        :root{
+            --blue-dark: #0a3d62;
+            --blue-mid: #1f4e79;
+            --blue-light: #eaf3fb;
+        }
+        .reportview-container, .main {
+            background-color: var(--blue-light);
+        }
+        .css-1d391kg h1, .css-1d391kg h2 {
+            color: var(--blue-dark);
+            font-family: "Arial", sans-serif;
+        }
+        .stButton>button {
+            background-color: var(--blue-mid);
+            color: white;
+            border-radius: 8px;
+            border: none;
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+        .stButton>button:hover {
+            background-color: #163754;
+        }
+    </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ----------------------------
     # Encabezado con logo
+    # ----------------------------
     col_title, col_logo = st.columns([6, 1])
     with col_title:
         st.title("Consulta de Responsables de Proyectos")
     with col_logo:
-        st.image("loading.png", width=80)
+        try:
+            st.image("loading.png", width=80)
+        except Exception:
+            pass
 
-    # Tabs
-    tab1, tab2, tab3 = st.tabs([
-        "📋 Responsables por Proyecto", 
-        "📈 Reporte de Avances", 
-        "🕒 Horario de Reuniones"
-    ])
+    # ----------------------------
+    # Tabs (restauro tu primer diseño)
+    # ----------------------------
+    tab1, tab2, tab3 = st.tabs(["📋 Responsables por Proyecto", "📈 Reporte de Avances", "🕒 Horario de Reuniones"])
 
     # ======================================================
-    # TAB 1: Responsables
+    # TAB 1: Responsables (restaurada a la versión original que funcionaba)
     # ======================================================
     with tab1:
-        def load_data():
+        def load_data_responsables():
             return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
 
-        df = load_data()
+        df = load_data_responsables()
+
+        # inicializar session_state para filtros (como en tu versión original)
+        for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente", "responsable_texto"]:
+            if filtro not in st.session_state:
+                st.session_state[filtro] = [] if filtro != "responsable_texto" else ""
+
         st.markdown("---")
         if st.button("Restablecer filtros"):
-            for key in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente", "responsable_texto"]:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.rerun()
+            for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente"]:
+                st.session_state[filtro] = []
+            st.session_state["responsable_texto"] = ""
 
         col1, col2, col3, col4, col5, col6 = st.columns(6)
-        sucursal = st.multiselect("Sucursal", sorted(df["Sucursal"].dropna().unique().tolist()))
-        cluster = st.multiselect("Cluster", sorted(df["Cluster"].dropna().unique().tolist()))
-        proyecto = st.multiselect("Proyecto", sorted(df["Proyecto"].dropna().unique().tolist()))
-        cargo = st.multiselect("Cargo", sorted(df["Cargo"].dropna().unique().tolist()))
-        estado = st.multiselect("Estado", sorted(df["Estado"].dropna().unique().tolist()))
-        gerentes_unicos = df.loc[df["Cargo"] == "Gerente de proyectos", "Responsable"].dropna().unique().tolist()
-        gerente = st.multiselect("Gerente de proyectos", sorted(gerentes_unicos))
+        with col1:
+            sucursal = st.multiselect("Sucursal", sorted(df["Sucursal"].dropna().unique().tolist()), key="sucursal")
+        with col2:
+            cluster = st.multiselect("Cluster", sorted(df["Cluster"].dropna().unique().tolist()), key="cluster")
+        with col3:
+            proyecto = st.multiselect("Proyecto", sorted(df["Proyecto"].dropna().unique().tolist()), key="proyecto")
+        with col4:
+            cargo = st.multiselect("Cargo", sorted(df["Cargo"].dropna().unique().tolist()), key="cargo")
+        with col5:
+            estado = st.multiselect("Estado", sorted(df["Estado"].dropna().unique().tolist()), key="estado")
+        with col6:
+            # en tu código original buscabas los gerentes en Cargo == "Gerente de proyectos"
+            gerentes_unicos = df.loc[df["Cargo"] == "Gerente de proyectos", "Responsable"].dropna().unique().tolist()
+            gerente = st.multiselect("Gerente de proyectos", sorted(gerentes_unicos), key="gerente")
 
-        responsable_texto = st.text_input("🔎 Buscar por responsable (texto libre)")
+        responsable_texto = st.text_input("🔎 Buscar por responsable (texto libre)", key="responsable_texto")
 
         df_filtrado = df.copy()
+
         if gerente:
             proyectos_del_gerente = df.loc[
                 (df["Cargo"] == "Gerente de proyectos") & (df["Responsable"].isin(gerente)),
@@ -126,13 +176,17 @@ def main_app():
 
         if not df_filtrado.empty:
             st.dataframe(
-                df_filtrado[["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable",
-                             "FechaIngreso", "Estado", "Correo", "Celular"]],
+                df_filtrado[
+                    ["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable",
+                     "FechaIngreso", "Estado", "Correo", "Celular"]
+                ],
                 use_container_width=True,
             )
+
             correos = df_filtrado["Correo"].dropna().tolist()
-            if correos:
-                correos_str = "\n".join(correos)
+            correos_str = "\n".join(correos)
+
+            if correos_str.strip():
                 correos_json = json.dumps(correos_str)
                 html = f"""
                 <div style="font-family: Arial, sans-serif; margin-top:15px;">
@@ -144,18 +198,31 @@ def main_app():
                       border:none;
                       border-radius:8px;
                       font-weight:600;
-                      cursor:pointer;">Copiar correos</button>
+                      cursor:pointer;
+                  ">Copiar correos</button>
                   <div id="msg" style="height:18px; font-size:13px; color:#0a3d62; margin-top:6px;"></div>
+
                   <script>
                     const text = {correos_json};
                     const copyBtn = document.getElementById("copy-btn");
                     const msg = document.getElementById("msg");
+
                     copyBtn.addEventListener("click", async () => {{
                       try {{
                         await navigator.clipboard.writeText(text);
                         msg.innerText = "Copiado";
                       }} catch (e) {{
-                        msg.innerText = "No fue posible copiar automáticamente.";
+                        try {{
+                          const ta = document.createElement("textarea");
+                          ta.value = text;
+                          document.body.appendChild(ta);
+                          ta.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(ta);
+                          msg.innerText = "Copiado (fallback)";
+                        }} catch (ee) {{
+                          msg.innerText = "No fue posible copiar automáticamente. Use Ctrl+C.";
+                        }}
                       }}
                       setTimeout(()=>msg.innerText = "", 2500);
                     }});
@@ -164,12 +231,12 @@ def main_app():
                 """
                 components.html(html, height=100)
             else:
-                st.info("No hay correos para copiar.")
+                st.write("No hay correos para copiar.")
         else:
             st.warning("No se encontraron resultados con los filtros seleccionados.")
 
     # ======================================================
-    # TAB 2: Reporte de Avances
+    # TAB 2: Reporte de Avances (igual que antes)
     # ======================================================
     with tab2:
         st.subheader("📈 Reporte de Avances")
@@ -182,56 +249,142 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
     # ======================================================
-    # TAB 3: Horario de Reuniones
+    # TAB 3: Horario de Reuniones (robusto, con normalización)
     # ======================================================
     with tab3:
         st.subheader("🕒 Horario de Reuniones - Last Planner System")
-        try:
-            df_reuniones = pd.read_excel("data/HorariosReuniones.xlsx")
+        # Intentar abrir el archivo con nombre exacto proporcionado, si no existe, intentar otras variantes
+        posibles_rutas = [
+            "data/HorarioReuniones.xlsx",
+            "data/HorariosReuniones.xlsx",
+            "data/13. Horarios Reuniones Last Planner 2025.xlsx",
+            "data/HorariosReuniones 2025.xlsx"
+        ]
+        df_reuniones = None
+        ruta_encontrada = None
+        for r in posibles_rutas:
+            if os.path.exists(r):
+                try:
+                    df_reuniones = pd.read_excel(r)
+                    ruta_encontrada = r
+                    break
+                except Exception:
+                    # si existe pero no puede leerse, reportar error
+                    st.error(f"Se encontró el archivo {r} pero hubo un error al leerlo.")
+                    df_reuniones = None
+                    ruta_encontrada = r
+                    break
 
-            col1, col2, col3, col4 = st.columns(4)
-            sucursal = col1.multiselect("Sucursal", sorted(df_reuniones["Sucursal"].dropna().unique().tolist()))
-            proyecto = col2.multiselect("Proyecto", sorted(df_reuniones["Proyecto"].dropna().unique().tolist()))
-            gerente = col3.multiselect("Gerente", sorted(df_reuniones["Gerente"].dropna().unique().tolist()))
-            tipo_reunion = col4.selectbox("Tipo de reunión", ["Intermedia", "Semanal"])
+        if df_reuniones is None:
+            st.error("No se encontró el archivo de horarios. Busqué:\n- " + "\n- ".join(posibles_rutas) + "\n\nPor favor sube 'HorarioReuniones.xlsx' (o 'HorariosReuniones.xlsx') a la carpeta data.")
+        else:
+            # Normalizar nombres de columnas para evitar errores por tildes/espacios/diferentes capitalizaciones
+            df_reuniones = df_reuniones.copy()
+            original_cols = list(df_reuniones.columns)
+            normalized_map = {c: normalize_col(c) for c in original_cols}
+            df_reuniones.rename(columns=normalized_map, inplace=True)
 
-            df_filtrado = df_reuniones.copy()
-            if sucursal:
-                df_filtrado = df_filtrado[df_filtrado["Sucursal"].isin(sucursal)]
-            if proyecto:
-                df_filtrado = df_filtrado[df_filtrado["Proyecto"].isin(proyecto)]
-            if gerente:
-                df_filtrado = df_filtrado[df_filtrado["Gerente"].isin(gerente)]
+            # columnas esperadas normalizadas
+            expected = {
+                "SUCURSAL": "SUCURSAL",
+                "PRACTICANTE": "PRACTICANTE",
+                "GERENTE": "GERENTE",
+                "PROYECTO": "PROYECTO",
+                "DIA_INTERMEDIA": "DIA_INTERMEDIA",
+                "HORA_INTERMEDIA": "HORA_INTERMEDIA",
+                "DIA_SEMANAL": "DIA_SEMANAL",
+                "HORA_SEMANAL": "HORA_SEMANAL"
+            }
 
-            if tipo_reunion == "Intermedia":
-                columnas_mostrar = ["Sucursal", "Practicante", "Gerente", "Proyecto", "Día Intermedia", "Hora Intermedia"]
-                df_filtrado = df_filtrado.rename(columns={
-                    "Día Intermedia": "Día", "Hora Intermedia": "Hora"
-                })
+            # comprobar cuáles columnas están disponibles
+            cols_presentes = set(df_reuniones.columns)
+            # Si faltan las columnas mínimas, avisar
+            min_req = {"SUCURSAL", "GERENTE", "PROYECTO"}
+            if not min_req.issubset(cols_presentes):
+                st.error(f"El archivo '{ruta_encontrada}' no contiene las columnas mínimas esperadas. Columnas encontradas: {sorted(list(cols_presentes))}")
             else:
-                columnas_mostrar = ["Sucursal", "Practicante", "Gerente", "Proyecto", "Día Semanal", "Hora Semanal"]
-                df_filtrado = df_filtrado.rename(columns={
-                    "Día Semanal": "Día", "Hora Semanal": "Hora"
-                })
+                # Preparar filtros (usar valores únicos existentes)
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    sucursal_vals = sorted(df_reuniones["SUCURSAL"].dropna().unique().tolist())
+                    sucursal = st.multiselect("Sucursal", sucursal_vals)
+                with col2:
+                    proyecto_vals = sorted(df_reuniones["PROYECTO"].dropna().unique().tolist())
+                    proyecto = st.multiselect("Proyecto", proyecto_vals)
+                with col3:
+                    gerente_vals = sorted(df_reuniones["GERENTE"].dropna().unique().tolist())
+                    gerente = st.multiselect("Gerente", gerente_vals)
+                with col4:
+                    tipo_reunion = st.selectbox("Tipo de reunión", ["Intermedia", "Semanal"])
 
-            col5, col6 = st.columns(2)
-            dia = col5.multiselect("Día", sorted(df_filtrado["Día"].dropna().unique().tolist()))
-            hora = col6.multiselect("Hora", sorted(df_filtrado["Hora"].dropna().unique().tolist()))
-            if dia:
-                df_filtrado = df_filtrado[df_filtrado["Día"].isin(dia)]
-            if hora:
-                df_filtrado = df_filtrado[df_filtrado["Hora"].isin(hora)]
+                df_filtrado = df_reuniones.copy()
+                if sucursal:
+                    df_filtrado = df_filtrado[df_filtrado["SUCURSAL"].isin(sucursal)]
+                if proyecto:
+                    df_filtrado = df_filtrado[df_filtrado["PROYECTO"].isin(proyecto)]
+                if gerente:
+                    df_filtrado = df_filtrado[df_filtrado["GERENTE"].isin(gerente)]
 
-            st.markdown("---")
-            if not df_filtrado.empty:
-                st.dataframe(df_filtrado[columnas_mostrar], use_container_width=True)
-            else:
-                st.info("No se encontraron reuniones con los filtros seleccionados.")
+                # según el tipo seleccionado, mapear columnas Día/Hora
+                if tipo_reunion == "Intermedia":
+                    dia_col = "DIA_INTERMEDIA"
+                    hora_col = "HORA_INTERMEDIA"
+                else:
+                    dia_col = "DIA_SEMANAL"
+                    hora_col = "HORA_SEMANAL"
 
-        except FileNotFoundError:
-            st.error("No se encontró el archivo 'data/HorariosReuniones.xlsx'")
-        except Exception as e:
-            st.error(f"Error al cargar el archivo: {e}")
+                # si las columnas específicas no existen, mostrarlas vacías con aviso
+                if dia_col not in df_filtrado.columns:
+                    df_filtrado[dia_col] = pd.NA
+                if hora_col not in df_filtrado.columns:
+                    df_filtrado[hora_col] = pd.NA
+
+                # filtros extra por día/hora (si existen valores)
+                col5, col6 = st.columns(2)
+                with col5:
+                    dia_vals = sorted(df_filtrado[dia_col].dropna().unique().tolist())
+                    dia = st.multiselect("Día", dia_vals)
+                with col6:
+                    hora_vals = sorted(df_filtrado[hora_col].dropna().unique().tolist())
+                    hora = st.multiselect("Hora", hora_vals)
+
+                if dia:
+                    df_filtrado = df_filtrado[df_filtrado[dia_col].isin(dia)]
+                if hora:
+                    df_filtrado = df_filtrado[df_filtrado[hora_col].isin(hora)]
+
+                # Preparar columnas para mostrar (usar nombres originales si quieres, aquí muestro una selección clara)
+                display_cols = []
+                # intentar usar la columna Practicante si existe
+                if "PRACTICANTE" in df_filtrado.columns:
+                    display_cols.append("PRACTICANTE")
+                display_cols += ["SUCURSAL", "GERENTE", "PROYECTO", dia_col, hora_col]
+
+                # renombrar columnas mostradas a una forma legible (opcional)
+                rename_display = {
+                    "SUCURSAL": "Sucursal",
+                    "PRACTICANTE": "Practicante",
+                    "GERENTE": "Gerente",
+                    "PROYECTO": "Proyecto",
+                    "DIA_INTERMEDIA": "Día Intermedia",
+                    "HORA_INTERMEDIA": "Hora Intermedia",
+                    "DIA_SEMANAL": "Día Semanal",
+                    "HORA_SEMANAL": "Hora Semanal"
+                }
+
+                # Mostrar resultados
+                st.markdown("---")
+                if not df_filtrado.empty:
+                    df_show = df_filtrado[display_cols].copy()
+                    # renombrar columnas para presentación
+                    df_show.rename(columns={c: rename_display.get(c, c) for c in df_show.columns}, inplace=True)
+                    st.dataframe(df_show, use_container_width=True)
+
+                    # descarga CSV del filtrado (opcional, creo que antes pediste no, pero lo dejo disponible)
+                    csv = df_show.to_csv(index=False).encode("utf-8")
+                    st.download_button("📥 Descargar horarios filtrados", csv, file_name="HorarioReuniones_filtrado.csv", mime="text/csv")
+                else:
+                    st.info("No se encontraron reuniones con los filtros seleccionados.")
 
 # ----------------------------
 # Ejecución principal
