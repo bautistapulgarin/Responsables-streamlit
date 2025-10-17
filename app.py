@@ -248,16 +248,16 @@ def main_app():
         st.subheader("🕒 Horario Reuniones LP")
         st.info("Esta sección está en construcción. Aquí se mostrarán los horarios de reuniones Last Planner (LP).")
 
-    try:
-        df_horario = pd.read_excel("data/HorarioReuniones.xlsx")
-
-        # Mostrar el DataFrame tal cual
-        st.dataframe(df_horario, use_container_width=True)
-
-    except FileNotFoundError:
-        st.error("⚠️ No se encontró el archivo 'data/HorarioReuniones.xlsx'")
-    except Exception as e:
-        st.error(f"Error al cargar el archivo: {e}")
+        try:
+            df_horario = pd.read_excel("data/HorarioReuniones.xlsx")
+    
+            # Mostrar el DataFrame tal cual
+            st.dataframe(df_horario, use_container_width=True)
+    
+        except FileNotFoundError:
+            st.error("⚠️ No se encontró el archivo 'data/HorarioReuniones.xlsx'")
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
 
 
 
