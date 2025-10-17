@@ -1,143 +1,271 @@
-# streamlit run app.py
-
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
 import base64
 import io
+import json
 
 # ----------------------------
-# Configuración general
+# CONFIGURACIÓN GENERAL
 # ----------------------------
-st.set_page_config(page_title="Seguimiento de Proyectos", layout="wide")
+st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
+
 
 # ----------------------------
-# Función para cargar Excel desde GitHub (carpeta /data)
-# ----------------------------
-@st.cache_data
-def cargar_excel(nombre_archivo):
-    try:
-        df = pd.read_excel(f"data/{nombre_archivo}")
-        df.columns = df.columns.str.strip().str.upper()
-        return df
-    except Exception as e:
-        st.error(f"Error al cargar el archivo: {e}")
-        return pd.DataFrame()
-
-# ----------------------------
-# Función para generar descarga en Excel
+# FUNCIÓN DESCARGAR EXCEL
 # ----------------------------
 def descargar_excel(df, nombre="descarga.xlsx"):
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False)
     datos = output.getvalue()
     b64 = base64.b64encode(datos).decode()
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="{nombre}">📥 Descargar Excel</a>'
     return href
 
+
 # ----------------------------
-# Interfaz principal
+# PANTALLA DE LOGIN
 # ----------------------------
-st.title("📊 Panel de Seguimiento de Proyectos")
+def login_screen():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("loading.png", width=120)
+        st.markdown("<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
+        password = st.text_input("Contraseña", type="password")
 
-tabs = st.tabs(["Consulta de Responsables", "Reporte de Avances", "Horario de Reuniones"])
+        if st.button("Ingresar", use_container_width=True):
+            if password == st.secrets["password"]:
+                st.session_state["logged_in"] = True
+                st.success("✅ Acceso concedido")
+                st.rerun()
+            else:
+                st.error("❌ Contraseña incorrecta")
 
-# ===============================================================
-# 🟦 Pestaña 1: Consulta de Responsables
-# ===============================================================
-with tabs[0]:
-    st.subheader("🔍 Consulta de Responsables")
 
-    df_resp = cargar_excel("Responsables.xlsx")
+# ----------------------------
+# APP PRINCIPAL
+# ----------------------------
+def main_app():
+    # ----------------------------
+    # Estilos
+    # ----------------------------
+    st.markdown(
+        """
+        <style>
+            body {background-color: white !important; color: black !important;}
+            .stApp {background-color: white !important;}
+            :root{
+                --blue-dark: #0a3d62;
+                --blue-mid: #1f4e79;
+                --blue-light: #eaf3fb;
+            }
+            .reportview-container, .main {background-color: var(--blue-light);}
+            .stButton>button {
+                background-color: var(--blue-mid);
+                color: white;
+                border-radius: 8px;
+                border: none;
+                padding: 8px 12px;
+                font-weight: 600;
+            }
+            .stButton>button:hover {background-color: #163754;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    if not df_resp.empty:
-        col1, col2, col3, col4 = st.columns(4)
-        sucursal = col1.selectbox("Sucursal", ["Todos"] + sorted(df_resp["Sucursal"].dropna().unique().tolist()))
-        cluster = col2.selectbox("Cluster", ["Todos"] + sorted(df_resp["Cluster"].dropna().unique().tolist()))
-        proyecto = col3.selectbox("Proyecto", ["Todos"] + sorted(df_resp["Proyecto"].dropna().unique().tolist()))
-        cargo = col4.selectbox("Cargo", ["Todos"] + sorted(df_resp["Cargo"].dropna().unique().tolist()))
+    # ----------------------------
+    # Encabezado
+    # ----------------------------
+    col_title, col_logo = st.columns([6, 1])
+    with col_title:
+        st.title("Consulta de Responsables de Proyectos")
+    with col_logo:
+        st.image("loading.png", width=80)
 
-        col5, col6, col7 = st.columns(3)
-        estado = col5.selectbox("Estado", ["Todos"] + sorted(df_resp["Estado"].dropna().unique().tolist()))
-        gerente = col6.selectbox("Gerente de Proyecto", ["Todos"] + sorted(df_resp["Gerente"].dropna().unique().tolist()))
-        busqueda = col7.text_input("Búsqueda por texto (nombre o correo):")
+    # ----------------------------
+    # Tabs principales
+    # ----------------------------
+    tab1, tab2, tab3 = st.tabs(["📋 Responsables por Proyecto", "📈 Reporte de Avances", "🕒 Horario de Reuniones"])
 
-        df_filtrado = df_resp.copy()
+    # ======================================================
+    # TAB 1: RESPONSABLES POR PROYECTO
+    # ======================================================
+    with tab1:
+        try:
+            df = pd.read_excel("data/ResponsablesPorProyecto.xlsx")
+        except FileNotFoundError:
+            st.error("No se encontró el archivo 'data/ResponsablesPorProyecto.xlsx'")
+            st.stop()
 
-        if sucursal != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Sucursal"] == sucursal]
-        if cluster != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Cluster"] == cluster]
-        if proyecto != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Proyecto"] == proyecto]
-        if cargo != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Cargo"] == cargo]
-        if estado != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Estado"] == estado]
-        if gerente != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Gerente"] == gerente]
-        if busqueda:
-            df_filtrado = df_filtrado[df_filtrado.apply(lambda r: busqueda.lower() in str(r.values).lower(), axis=1)]
+        for filtro in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente", "responsable_texto"]:
+            if filtro not in st.session_state:
+                st.session_state[filtro] = [] if filtro != "responsable_texto" else ""
 
-        st.dataframe(df_filtrado, use_container_width=True)
-        st.markdown(descargar_excel(df_filtrado, "Responsables_filtrados.xlsx"), unsafe_allow_html=True)
+        st.markdown("---")
+        if st.button("Restablecer filtros"):
+            for f in ["sucursal", "cluster", "proyecto", "cargo", "estado", "gerente"]:
+                st.session_state[f] = []
+            st.session_state["responsable_texto"] = ""
 
-    else:
-        st.warning("No se pudo cargar la información de responsables.")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        with col1:
+            sucursal = st.multiselect("Sucursal", sorted(df["Sucursal"].dropna().unique().tolist()), key="sucursal")
+        with col2:
+            cluster = st.multiselect("Cluster", sorted(df["Cluster"].dropna().unique().tolist()), key="cluster")
+        with col3:
+            proyecto = st.multiselect("Proyecto", sorted(df["Proyecto"].dropna().unique().tolist()), key="proyecto")
+        with col4:
+            cargo = st.multiselect("Cargo", sorted(df["Cargo"].dropna().unique().tolist()), key="cargo")
+        with col5:
+            estado = st.multiselect("Estado", sorted(df["Estado"].dropna().unique().tolist()), key="estado")
+        with col6:
+            gerentes_unicos = df.loc[df["Cargo"] == "Gerente de proyectos", "Responsable"].dropna().unique().tolist()
+            gerente = st.multiselect("Gerente de proyectos", sorted(gerentes_unicos), key="gerente")
 
-# ===============================================================
-# 🟩 Pestaña 2: Reporte de Avances
-# ===============================================================
-with tabs[1]:
-    st.subheader("📈 Reporte de Avances")
+        responsable_texto = st.text_input("🔎 Buscar por responsable (texto libre)", key="responsable_texto")
 
-    df_avances = cargar_excel("ReporteAvances.xlsx")
-
-    if not df_avances.empty:
-        st.dataframe(df_avances, use_container_width=True)
-        st.markdown(descargar_excel(df_avances, "ReporteAvances.xlsx"), unsafe_allow_html=True)
-    else:
-        st.warning("No se pudo cargar la información del reporte de avances.")
-
-# ===============================================================
-# 🟨 Pestaña 3: Horario de Reuniones
-# ===============================================================
-with tabs[2]:
-    st.subheader("🕒 Horario de Reuniones - Last Planner System")
-
-    df_horarios = cargar_excel("HorariosReuniones.xlsx")
-
-    if not df_horarios.empty:
-        columnas_requeridas = [
-            "SUCURSAL", "PRACTICANTE", "GERENTE", "PROYECTO",
-            "DIA INTERMEDIA", "HORA INTERMEDIA", "DIA SEMANAL", "HORA SEMANAL"
-        ]
-
-        # Verificar que el archivo tiene las columnas esperadas
-        columnas_archivo = [c.upper() for c in df_horarios.columns]
-        if not all(col in columnas_archivo for col in columnas_requeridas):
-            st.error(f"El archivo 'data/HorariosReuniones.xlsx' no contiene las columnas mínimas esperadas.\nColumnas encontradas: {list(df_horarios.columns)}")
+        df_filtrado = df.copy()
+        if gerente:
+            proyectos_del_gerente = df.loc[
+                (df["Cargo"] == "Gerente de proyectos") & (df["Responsable"].isin(gerente)),
+                "Proyecto"
+            ].unique().tolist()
+            df_filtrado = df[df["Proyecto"].isin(proyectos_del_gerente)]
         else:
-            col1, col2, col3 = st.columns(3)
-            proyecto = col1.selectbox("Proyecto", ["Todos"] + sorted(df_horarios["PROYECTO"].dropna().unique().tolist()))
-            gerente = col2.selectbox("Gerente", ["Todos"] + sorted(df_horarios["GERENTE"].dropna().unique().tolist()))
-            tipo_reunion = col3.selectbox("Tipo de Reunión", ["Todos", "Intermedia", "Semanal"])
+            if sucursal:
+                df_filtrado = df_filtrado[df_filtrado["Sucursal"].isin(sucursal)]
+            if cluster:
+                df_filtrado = df_filtrado[df_filtrado["Cluster"].isin(cluster)]
+            if proyecto:
+                df_filtrado = df_filtrado[df_filtrado["Proyecto"].isin(proyecto)]
+            if cargo:
+                df_filtrado = df_filtrado[df_filtrado["Cargo"].isin(cargo)]
+            if estado:
+                df_filtrado = df_filtrado[df_filtrado["Estado"].isin(estado)]
 
-            df_filtrado = df_horarios.copy()
+        if responsable_texto.strip():
+            df_filtrado = df_filtrado[df_filtrado["Responsable"].str.contains(responsable_texto, case=False, na=False)]
 
-            if proyecto != "Todos":
-                df_filtrado = df_filtrado[df_filtrado["PROYECTO"] == proyecto]
-            if gerente != "Todos":
-                df_filtrado = df_filtrado[df_filtrado["GERENTE"] == gerente]
+        st.markdown("---")
+        st.subheader("Resultados de la consulta")
 
-            # Mostrar solo columnas relevantes según el tipo de reunión
-            if tipo_reunion == "Intermedia":
-                df_filtrado = df_filtrado[["SUCURSAL", "PRACTICANTE", "GERENTE", "PROYECTO", "DIA INTERMEDIA", "HORA INTERMEDIA"]]
-            elif tipo_reunion == "Semanal":
-                df_filtrado = df_filtrado[["SUCURSAL", "PRACTICANTE", "GERENTE", "PROYECTO", "DIA SEMANAL", "HORA SEMANAL"]]
+        if not df_filtrado.empty:
+            st.dataframe(
+                df_filtrado[
+                    ["Sucursal", "Cluster", "Proyecto", "HC", "Cargo", "Responsable",
+                     "FechaIngreso", "Estado", "Correo", "Celular"]
+                ],
+                use_container_width=True,
+            )
 
-            st.dataframe(df_filtrado, use_container_width=True)
-            st.markdown(descargar_excel(df_filtrado, "HorarioReuniones_filtrado.xlsx"), unsafe_allow_html=True)
+            correos = df_filtrado["Correo"].dropna().tolist()
+            correos_str = "\n".join(correos)
+            if correos_str.strip():
+                correos_json = json.dumps(correos_str)
+                html = f"""
+                <div style="font-family: Arial, sans-serif; margin-top:15px;">
+                  <button id="copy-btn" style="
+                      padding:10px 16px;
+                      font-size:14px;
+                      background-color:#1f4e79;
+                      color:#ffffff;
+                      border:none;
+                      border-radius:8px;
+                      font-weight:600;
+                      cursor:pointer;
+                  ">Copiar correos</button>
+                  <div id="msg" style="height:18px; font-size:13px; color:#0a3d62; margin-top:6px;"></div>
+                  <script>
+                    const text = {correos_json};
+                    const copyBtn = document.getElementById("copy-btn");
+                    const msg = document.getElementById("msg");
+                    copyBtn.addEventListener("click", async () => {{
+                      try {{
+                        await navigator.clipboard.writeText(text);
+                        msg.innerText = "Copiado";
+                      }} catch (e) {{
+                        msg.innerText = "Use Ctrl+C para copiar manualmente.";
+                      }}
+                      setTimeout(()=>msg.innerText = "", 2500);
+                    }});
+                  </script>
+                </div>
+                """
+                components.html(html, height=100)
+            else:
+                st.write("No hay correos para copiar.")
+        else:
+            st.warning("No se encontraron resultados con los filtros seleccionados.")
 
-    else:
-        st.warning("No se pudo cargar el archivo 'HorariosReuniones.xlsx'.")
+    # ======================================================
+    # TAB 2: REPORTE DE AVANCES
+    # ======================================================
+    with tab2:
+        st.subheader("📈 Reporte de Avances")
+        try:
+            df_avances = pd.read_excel("data/ReporteAvances.xlsx")
+            st.dataframe(df_avances, use_container_width=True)
+            st.markdown(descargar_excel(df_avances, "ReporteAvances.xlsx"), unsafe_allow_html=True)
+        except FileNotFoundError:
+            st.error("No se encontró el archivo 'data/ReporteAvances.xlsx'")
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
+
+    # ======================================================
+    # TAB 3: HORARIO DE REUNIONES
+    # ======================================================
+    with tab3:
+        st.subheader("🕒 Horario de Reuniones - Last Planner System")
+
+        try:
+            df_horarios = pd.read_excel("data/HorariosReuniones.xlsx")
+            columnas_esperadas = ["SUCURSAL", "PRACTICANTE", "GERENTE", "PROYECTO",
+                                  "DÍA INTERMEDIA", "HORA INTERMEDIA", "DÍA SEMANAL", "HORA SEMANAL"]
+            df_horarios.columns = [c.strip().upper() for c in df_horarios.columns]
+
+            if not all(col in df_horarios.columns for col in columnas_esperadas):
+                st.error(f"El archivo no contiene las columnas esperadas: {columnas_esperadas}")
+            else:
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    proyecto = st.multiselect("Proyecto", sorted(df_horarios["PROYECTO"].dropna().unique()))
+                with col2:
+                    gerente = st.multiselect("Gerente", sorted(df_horarios["GERENTE"].dropna().unique()))
+                with col3:
+                    tipo_reunion = st.selectbox("Tipo de reunión", ["Intermedia", "Semanal"])
+
+                df_filtrado = df_horarios.copy()
+                if proyecto:
+                    df_filtrado = df_filtrado[df_filtrado["PROYECTO"].isin(proyecto)]
+                if gerente:
+                    df_filtrado = df_filtrado[df_filtrado["GERENTE"].isin(gerente)]
+
+                if tipo_reunion == "Intermedia":
+                    mostrar_cols = ["SUCURSAL", "PROYECTO", "GERENTE", "PRACTICANTE",
+                                    "DÍA INTERMEDIA", "HORA INTERMEDIA"]
+                else:
+                    mostrar_cols = ["SUCURSAL", "PROYECTO", "GERENTE", "PRACTICANTE",
+                                    "DÍA SEMANAL", "HORA SEMANAL"]
+
+                st.dataframe(df_filtrado[mostrar_cols], use_container_width=True)
+                st.markdown(descargar_excel(df_filtrado[mostrar_cols], "HorarioReunionesFiltrado.xlsx"),
+                            unsafe_allow_html=True)
+
+        except FileNotFoundError:
+            st.error("No se encontró el archivo 'data/HorariosReuniones.xlsx'")
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
+
+
+# ----------------------------
+# EJECUCIÓN PRINCIPAL
+# ----------------------------
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+
+if st.session_state["logged_in"]:
+    main_app()
+else:
+    login_screen()
