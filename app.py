@@ -97,10 +97,14 @@ def main_app():
     # ----------------------------
     # Tabs
     # ----------------------------
-    tab1, tab2 = st.tabs(["📋 Responsables por Proyecto", "📈 Reporte de Avances"])
+    tab1, tab2, tab3 = st.tabs([
+        "📋 Responsables por Proyecto", 
+        "📈 Reporte de Avances", 
+        "🕒 Horario Reuniones LP"
+    ])
 
     # ======================================================
-    # TAB 1: Responsables (original sin cambios)
+    # TAB 1: Responsables
     # ======================================================
     with tab1:
         def load_data():
@@ -236,6 +240,13 @@ def main_app():
             st.error("No se encontró el archivo 'data/ReporteAvances.xlsx'")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
+
+    # ======================================================
+    # TAB 3: Horario Reuniones LP
+    # ======================================================
+    with tab3:
+        st.subheader("🕒 Horario Reuniones LP")
+        st.info("Esta sección está en construcción. Aquí se mostrarán los horarios de reuniones Last Planner (LP).")
 
 # ----------------------------
 # Ejecución principal
