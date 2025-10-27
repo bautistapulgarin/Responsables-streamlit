@@ -16,11 +16,14 @@ def login_screen():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.image("loading.png", width=120)
+
         st.markdown(
             "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
             unsafe_allow_html=True
         )
+
         password = st.text_input("Contraseña", type="password")
+
         if st.button("Ingresar", use_container_width=True):
             if password == st.secrets["password"]:
                 st.session_state["logged_in"] = True
@@ -39,14 +42,44 @@ def main_app():
     st.markdown(
         """
     <style>
-        body { background-color: white !important; color: black !important; }
-        .stApp { background-color: white !important; }
-        :root { --blue-dark: #0a3d62; --blue-mid: #1f4e79; --blue-light: #eaf3fb; }
-        .reportview-container, .main { background-color: var(--blue-light); }
-        .css-1d391kg h1, .css-1d391kg h2 { color: var(--blue-dark); font-family: "Arial", sans-serif; }
-        .stButton>button { background-color: var(--blue-mid); color: white; border-radius: 8px; border: none; padding: 8px 12px; font-weight: 600; }
-        .stButton>button:hover { background-color: #163754; }
-        .stSelectbox, .stDataFrame { border-radius: 10px; }
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        .stApp {
+            background-color: white !important;
+        }
+
+        :root{
+            --blue-dark: #0a3d62;
+            --blue-mid: #1f4e79;
+            --blue-light: #eaf3fb;
+        }
+        /* Fondo */
+        .reportview-container, .main {
+            background-color: var(--blue-light);
+        }
+        /* Títulos */
+        .css-1d391kg h1, .css-1d391kg h2 {
+            color: var(--blue-dark);
+            font-family: "Arial", sans-serif;
+        }
+        /* Botones Streamlit */
+        .stButton>button {
+            background-color: var(--blue-mid);
+            color: white;
+            border-radius: 8px;
+            border: none;
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+        .stButton>button:hover {
+            background-color: #163754;
+        }
+        /* Select / DataFrame */
+        .stSelectbox, .stDataFrame {
+            border-radius: 10px;
+        }
     </style>
         """,
         unsafe_allow_html=True,
@@ -107,6 +140,7 @@ def main_app():
         responsable_texto = st.text_input("🔎 Buscar por responsable (texto libre)", key="responsable_texto")
 
         df_filtrado = df.copy()
+
         if gerente:
             proyectos_del_gerente = df.loc[
                 (df["Cargo"] == "Gerente de proyectos") & (df["Responsable"].isin(gerente)),
@@ -212,52 +246,19 @@ def main_app():
     # ======================================================
     with tab3:
         st.subheader("🕒 Horario Reuniones LP")
-        st.info("Filtra los horarios de reuniones Last Planner (LP) por Sucursal, Gerente o Proyecto.")
+        st.info("Esta sección está en construcción. Aquí se mostrarán los horarios de reuniones Last Planner (LP).")
 
         try:
             df_horario = pd.read_excel("data/HorarioReuniones.xlsx")
-
-            # Inicializar filtros en session_state
-            for filtro in ["sucursal_lp", "gerente_lp", "proyecto_lp"]:
-                if filtro not in st.session_state:
-                    st.session_state[filtro] = []
-
-            # Botón para restablecer filtros
-            if st.button("Restablecer filtros LP"):
-                for filtro in ["sucursal_lp", "gerente_lp", "proyecto_lp"]:
-                    st.session_state[filtro] = []
-
-            # Columnas de filtros
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                sucursal_filtro = st.multiselect(
-                    "Sucursal", sorted(df_horario["Sucursal"].dropna().unique()), key="sucursal_lp"
-                )
-            with col2:
-                gerente_filtro = st.multiselect(
-                    "Gerente", sorted(df_horario["Gerente"].dropna().unique()), key="gerente_lp"
-                )
-            with col3:
-                proyecto_filtro = st.multiselect(
-                    "Proyecto", sorted(df_horario["Proyecto"].dropna().unique()), key="proyecto_lp"
-                )
-
-            # Aplicar filtros
-            df_filtrado = df_horario.copy()
-            if sucursal_filtro:
-                df_filtrado = df_filtrado[df_filtrado["Sucursal"].isin(sucursal_filtro)]
-            if gerente_filtro:
-                df_filtrado = df_filtrado[df_filtrado["Gerente"].isin(gerente_filtro)]
-            if proyecto_filtro:
-                df_filtrado = df_filtrado[df_filtrado["Proyecto"].isin(proyecto_filtro)]
-
-            # Mostrar DataFrame filtrado
-            st.dataframe(df_filtrado, use_container_width=True)
-
+    
+            # Mostrar el DataFrame tal cual
+            st.dataframe(df_horario, use_container_width=True)
+    
         except FileNotFoundError:
             st.error("⚠️ No se encontró el archivo 'data/HorarioReuniones.xlsx'")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
+
 
 
 # ----------------------------
