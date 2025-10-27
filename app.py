@@ -244,20 +244,63 @@ def main_app():
     # ======================================================
     # TAB 3: Horario Reuniones LP
     # ======================================================
-    with tab3:
-        st.subheader("🕒 Horario Reuniones LP")
-        st.info("Esta sección está en construcción. Aquí se mostrarán los horarios de reuniones Last Planner (LP).")
+ with tab3:
+    st.subheader("🕒 Horario Reuniones LP")
+    st.info("Filtra los horarios de reuniones Last Planner (LP) por Sucursal, Gerente o Proyecto.")
 
-        try:
-            df_horario = pd.read_excel("data/HorarioReuniones.xlsx")
-    
-            # Mostrar el DataFrame tal cual
-            st.dataframe(df_horario, use_container_width=True)
-    
-        except FileNotFoundError:
-            st.error("⚠️ No se encontró el archivo 'data/HorarioReuniones.xlsx'")
-        except Exception as e:
-            st.error(f"Error al cargar el archivo: {e}")
+    try:
+        df_horario = pd.read_excel("data/HorarioReuniones.xlsx")
+
+        # Inicializar filtros en session_state si no existen
+        for filtro in ["sucursal", "gerente", "proyecto"]:
+            if filtro not in st.session_state:
+                st.session_state[filtro] = []
+
+        # Botón para restablecer filtros
+        if st.button("Restablecer filtros"):
+            for filtro in ["sucursal", "gerente", "proyecto"]:
+                st.session_state[filtro] = []
+
+        # Columnas de filtros
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            sucursal_filtro = st.multiselect(
+                "Sucursal", 
+                sorted(df_horario["Sucursal"].dropna().unique()), 
+                key="sucursal"
+            )
+        with col2:
+            gerente_filtro = st.multiselect(
+                "Gerente", 
+                sorted(df_horario["Gerente"].dropna().unique()), 
+                key="gerente"
+            )
+        with col3:
+            proyecto_filtro = st.multiselect(
+                "Proyecto", 
+                sorted(df_horario["Proyecto"].dropna().unique()), 
+                key="proyecto"
+            )
+
+        # Aplicar filtros
+        df_filtrado = df_horario.copy()
+        if sucursal_filtro:
+            df_filtrado = df_filtrado[df_filtrado["Sucursal"].isin(sucursal_filtro)]
+        if gerente_filtro:
+            df_filtrado = df_filtrado[df_filtrado["Gerente"].isin(gerente_filtro)]
+        if proyecto_filtro:
+            df_filtrado = df_filtrado[df_filtrado["Proyecto"].isin(proyecto_filtro)]
+
+        # Mostrar DataFrame filtrado
+        st.dataframe(df_filtrado, use_container_width=True)
+
+    except FileNotFoundError:
+        st.error("⚠️ No se encontró el archivo 'data/HorarioReuniones.xlsx'")
+    except Exception as e:
+        st.error(f"Error al cargar el archivo: {e}")
+
+
+
 
 
 
