@@ -261,6 +261,79 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
 
+    
+ # ======================================================
+    # TAB 4: Directorio Documental
+    # ======================================================
+    with tab4:
+        st.subheader("📂 Directorio Documental")
+
+        # --- Cargar Excel ---
+        try:
+            df_dir = pd.read_excel("data/Directorio.xlsx")
+        except FileNotFoundError:
+            st.error("⚠️ No se encontró el archivo 'data/Directorio.xlsx'")
+            st.stop()
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
+            st.stop()
+
+        # --- Validar columnas esperadas ---
+        columnas_esperadas = ["ID", "ID_Padre", "Nivel", "Nombre", "Tipo", "Descripción", "URL", "Orden"]
+        faltantes = [c for c in columnas_esperadas if c not in df_dir.columns]
+        if faltantes:
+            st.error(f"El archivo no contiene las columnas requeridas: {faltantes}")
+            st.stop()
+
+        # --- Función recursiva para construir el árbol ---
+        def construir_arbol(df, id_padre=None):
+            df_nivel = df[df["ID_Padre"].fillna("") == (id_padre or "")]
+            df_nivel = df_nivel.sort_values("Orden", ascending=True)
+            arbol = []
+            for _, fila in df_nivel.iterrows():
+                hijos = construir_arbol(df, fila["ID"])
+                arbol.append({
+                    "id": fila["ID"],
+                    "nombre": fila["Nombre"],
+                    "tipo": fila["Tipo"],
+                    "url": fila["URL"],
+                    "descripcion": fila["Descripción"],
+                    "hijos": hijos
+                })
+            return arbol
+
+        arbol = construir_arbol(df_dir)
+
+        # --- Render recursivo del árbol en Streamlit ---
+        def mostrar_arbol(nodos):
+            for nodo in nodos:
+                if nodo["tipo"].lower() == "carpeta":
+                    with st.expander(f"📁 {nodo['nombre']}", expanded=False):
+                        if nodo["descripcion"]:
+                            st.caption(nodo["descripcion"])
+                        mostrar_arbol(nodo["hijos"])
+                else:
+                    enlace = f"[{nodo['nombre']}]({nodo['url']})" if pd.notna(nodo["url"]) and nodo["url"] else nodo["nombre"]
+                    st.markdown(f"- 📄 {enlace}")
+                    if nodo["descripcion"]:
+                        st.caption(nodo["descripcion"])
+
+        # --- Mostrar árbol ---
+        if arbol:
+            mostrar_arbol(arbol)
+        else:
+            st.info("No hay registros en el archivo Directorio.xlsx")
+
+
+
+
+
+
+
+
+
+
+
 
 # ----------------------------
 # Ejecución principal
