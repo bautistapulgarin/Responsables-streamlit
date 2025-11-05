@@ -262,7 +262,7 @@ def main_app():
 
 
     
- # ======================================================
+        # ======================================================
     # TAB 4: Directorio Documental
     # ======================================================
     with tab4:
@@ -295,9 +295,9 @@ def main_app():
                 arbol.append({
                     "id": fila["ID"],
                     "nombre": fila["Nombre"],
-                    "tipo": fila["Tipo"],
-                    "url": fila["URL"],
-                    "descripcion": fila["Descripción"],
+                    "tipo": str(fila["Tipo"]).strip() if pd.notna(fila["Tipo"]) else "Archivo",
+                    "url": str(fila["URL"]).strip() if pd.notna(fila["URL"]) else "",
+                    "descripcion": str(fila["Descripción"]).strip() if pd.notna(fila["Descripción"]) else "",
                     "hijos": hijos
                 })
             return arbol
@@ -309,12 +309,21 @@ def main_app():
             for nodo in nodos:
                 if nodo["tipo"].lower() == "carpeta":
                     with st.expander(f"📁 {nodo['nombre']}", expanded=False):
+                        # Mostrar descripción si existe
                         if nodo["descripcion"]:
-                            st.caption(nodo["descripcion"])
+                            st.markdown(f"📝 *{nodo['descripcion']}*")
+                        # Mostrar URL si existe
+                        if nodo["url"]:
+                            st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
+                        # Renderizar hijos
                         mostrar_arbol(nodo["hijos"])
                 else:
-                    enlace = f"[{nodo['nombre']}]({nodo['url']})" if pd.notna(nodo["url"]) and nodo["url"] else nodo["nombre"]
-                    st.markdown(f"- 📄 {enlace}")
+                    # Si tiene URL, mostrar como enlace clickeable
+                    if nodo["url"]:
+                        st.markdown(f"- 📄 [{nodo['nombre']}]({nodo['url']})")
+                    else:
+                        st.markdown(f"- 📄 {nodo['nombre']}")
+                    # Mostrar descripción debajo si existe
                     if nodo["descripcion"]:
                         st.caption(nodo["descripcion"])
 
@@ -323,8 +332,6 @@ def main_app():
             mostrar_arbol(arbol)
         else:
             st.info("No hay registros en el archivo Directorio.xlsx")
-
-
 
 
 
