@@ -98,9 +98,10 @@ def main_app():
     # Tabs
     # ----------------------------
     tab1, tab2, tab3 = st.tabs([
-        "📋 Responsables por Proyecto", 
-        "📈 Reporte de Avances", 
-        "🕒 Horario Reuniones LP"
+        " Responsables por Proyecto", 
+        " Reporte de Avances", 
+        " Horario Reuniones LP"
+        " Directorio Documental"
     ])
 
     # ======================================================
