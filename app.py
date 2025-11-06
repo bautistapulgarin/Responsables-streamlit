@@ -97,13 +97,19 @@ def main_app():
     # ----------------------------
     # Tabs
     # ----------------------------
-    tab1, tab2, tab3 , tab4 = st.tabs([
-        " 🧑🏿 Responsables por Proyecto", 
-        " 📈 Reporte de Avances", 
-        " 🕰️ Horario Reuniones LP",
-        " 📜 Directorio Documental"
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    " 🧑🏿 Responsables por Proyecto", 
+    " 📈 Reporte de Avances", 
+    " 🕰️ Horario Reuniones LP",
+    " 📜 Directorio Documental",
+    " 📋 Formulario"
     ])
 
+
+
+
+
+    
     # ======================================================
     # TAB 1: Responsables
     # ======================================================
@@ -335,9 +341,48 @@ def main_app():
 
 
 
-
-
-
+    
+    # ======================================================
+    # TAB 5: Formulario
+    # ======================================================
+    with tab5:
+        st.subheader("📋 Formulario de Registro")
+        st.info("Completa el siguiente formulario para registrar la información en Google Sheets.")
+    
+        # --- Conexión con Google Sheets ---
+        import gspread
+        from google.oauth2.service_account import Credentials
+        from datetime import datetime
+    
+        creds_info = st.secrets["google_service_account"]
+        creds = Credentials.from_service_account_info(
+            creds_info,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+    
+        client = gspread.authorize(creds)
+        SHEET_ID = "AQUI_TU_ID_ENTRE_D_Y_EDIT"  # reemplaza con tu ID real
+        sheet = client.open_by_key(SHEET_ID).sheet1
+    
+        # --- Formulario ---
+        with st.form("registro_form"):
+            nombre = st.text_input("👤 Nombre completo")
+            categoria = st.selectbox("📂 Categoría", ["Avance", "Reunión", "Observación", "Otro"])
+            comentario = st.text_area("💬 Comentario")
+            submitted = st.form_submit_button("✅ Enviar")
+    
+            if submitted:
+                if nombre and comentario:
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    new_row = [timestamp, nombre, categoria, comentario]
+                    sheet.append_row(new_row)
+                    st.success("Registro enviado correctamente ✅")
+                else:
+                    st.warning("Por favor completa al menos el nombre y el comentario.")
+    
+        
+        
+        
 
 
 
