@@ -361,7 +361,7 @@ def main_app():
         )
     
         client = gspread.authorize(creds)
-        SHEET_ID = "AQUI_TU_ID_ENTRE_D_Y_EDIT"  # reemplaza con tu ID real
+        SHEET_ID = "1PvlOcqy-B7uOcPeKvaGO18cssIEnb6UIXeNBRuVQpiE"  # reemplaza con tu ID real
         sheet = client.open_by_key(SHEET_ID).sheet1
     
         # --- Formulario ---
