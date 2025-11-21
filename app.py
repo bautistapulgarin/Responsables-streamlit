@@ -388,6 +388,9 @@ def main_app():
     # ======================================================
     # TAB 6
     # ======================================================
+    # ======================================================
+    # TAB 6
+    # ======================================================
     with tab6:
         st.subheader("🏢 Proyectos en grilla")
         st.info("Se refleja el estado de activación de la funcionalidad de grilla")
@@ -406,6 +409,8 @@ def main_app():
                 st.session_state.filtro_estado_grilla = []
             if "filtro_prioridad" not in st.session_state:
                 st.session_state.filtro_prioridad = []
+            if "filtro_componente" not in st.session_state:
+                st.session_state.filtro_componente = []
             
             # Control único para el reset
             if "reset_counter" not in st.session_state:
@@ -416,6 +421,7 @@ def main_app():
                 st.session_state.filtro_proyecto = []
                 st.session_state.filtro_estado_grilla = []
                 st.session_state.filtro_prioridad = []
+                st.session_state.filtro_componente = []
                 st.session_state.reset_counter += 1
                 st.success("Filtros restablecidos correctamente")
                 st.rerun()
@@ -467,7 +473,7 @@ def main_app():
                 else:
                     st.info("No hay columna 'Proyecto' disponible")
             
-            # Aplicar filtro de proyecto al DataFrame base para prioridad
+            # Aplicar filtro de proyecto al DataFrame base para prioridad y componente
             if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado_base.columns:
                 df_filtrado_base = df_filtrado_base[df_filtrado_base['Proyecto'].isin(st.session_state.filtro_proyecto)]
             
@@ -489,32 +495,68 @@ def main_app():
                     st.info("No hay columna 'Prioridad' disponible")
             
             with col4:
-                # Mostrar estado actual de los filtros
-                filtros_activos = False
-                info_text = "🔍 **Estado de filtros:**\n\n"
+                # CUARTO FILTRO: Componente (dependiente de estado, proyecto y prioridad) - CON CLAVE ÚNICA PARA RESET
+                # Identificar la columna de componente
+                componente_col = None
+                posibles_nombres_componente = ['Componente', 'Component', 'ComponenteGrilla', 'Componente_grilla', 'Componente Grilla']
                 
-                if st.session_state.filtro_estado_grilla:
-                    info_text += f"• 📊 **Estado grilla:** {', '.join(st.session_state.filtro_estado_grilla)}\n"
-                    filtros_activos = True
-                else:
-                    info_text += "• 📊 **Estado grilla:** Sin filtro\n"
+                for nombre in posibles_nombres_componente:
+                    if nombre in df_filtrado_base.columns:
+                        componente_col = nombre
+                        break
                 
-                if st.session_state.filtro_proyecto:
-                    info_text += f"• 📋 **Proyectos:** {len(st.session_state.filtro_proyecto)} seleccionados\n"
-                    filtros_activos = True
+                if componente_col:
+                    # Aplicar filtros anteriores al DataFrame para las opciones de componente
+                    df_para_componente = df_filtrado_base.copy()
+                    
+                    # Aplicar filtro de prioridad si existe
+                    if st.session_state.filtro_prioridad and 'Prioridad' in df_para_componente.columns:
+                        df_para_componente = df_para_componente[df_para_componente['Prioridad'].isin(st.session_state.filtro_prioridad)]
+                    
+                    opciones_componente = sorted(df_para_componente[componente_col].dropna().unique().tolist())
+                    filtro_componente = st.multiselect(
+                        "⚙️ Componente",
+                        options=opciones_componente,
+                        default=st.session_state.filtro_componente,
+                        key=f"componente_{st.session_state.reset_counter}"  # Clave única que cambia con cada reset
+                    )
+                    st.session_state.filtro_componente = filtro_componente
                 else:
-                    info_text += "• 📋 **Proyectos:** Sin filtro\n"
-                
-                if st.session_state.filtro_prioridad:
-                    info_text += f"• 🎯 **Prioridad:** {', '.join(st.session_state.filtro_prioridad)}\n"
-                    filtros_activos = True
-                else:
-                    info_text += "• 🎯 **Prioridad:** Sin filtro\n"
-                
-                if filtros_activos:
-                    st.success(info_text)
-                else:
-                    st.info(info_text)
+                    st.info("No hay columna 'Componente' disponible")
+            
+            # Mostrar estado actual de los filtros
+            st.markdown("---")
+            filtros_activos = False
+            info_text = "🔍 **Estado de filtros:**\n\n"
+            
+            if st.session_state.filtro_estado_grilla:
+                info_text += f"• 📊 **Estado grilla:** {', '.join(st.session_state.filtro_estado_grilla)}\n"
+                filtros_activos = True
+            else:
+                info_text += "• 📊 **Estado grilla:** Sin filtro\n"
+            
+            if st.session_state.filtro_proyecto:
+                info_text += f"• 📋 **Proyectos:** {len(st.session_state.filtro_proyecto)} seleccionados\n"
+                filtros_activos = True
+            else:
+                info_text += "• 📋 **Proyectos:** Sin filtro\n"
+            
+            if st.session_state.filtro_prioridad:
+                info_text += f"• 🎯 **Prioridad:** {', '.join(st.session_state.filtro_prioridad)}\n"
+                filtros_activos = True
+            else:
+                info_text += "• 🎯 **Prioridad:** Sin filtro\n"
+            
+            if st.session_state.filtro_componente:
+                info_text += f"• ⚙️ **Componente:** {', '.join(st.session_state.filtro_componente)}\n"
+                filtros_activos = True
+            else:
+                info_text += "• ⚙️ **Componente:** Sin filtro\n"
+            
+            if filtros_activos:
+                st.success(info_text)
+            else:
+                st.info(info_text)
             
             # APLICAR TODOS LOS FILTROS AL DATAFRAME FINAL
             df_filtrado_final = df_grilla.copy()
@@ -530,6 +572,16 @@ def main_app():
             # Aplicar filtro de Prioridad
             if st.session_state.filtro_prioridad and 'Prioridad' in df_filtrado_final.columns:
                 df_filtrado_final = df_filtrado_final[df_filtrado_final['Prioridad'].isin(st.session_state.filtro_prioridad)]
+            
+            # Aplicar filtro de Componente
+            componente_col_final = None
+            for nombre in posibles_nombres_componente:
+                if nombre in df_filtrado_final.columns:
+                    componente_col_final = nombre
+                    break
+            
+            if st.session_state.filtro_componente and componente_col_final:
+                df_filtrado_final = df_filtrado_final[df_filtrado_final[componente_col_final].isin(st.session_state.filtro_componente)]
             
             st.markdown("---")
             
@@ -607,17 +659,38 @@ def main_app():
                     st.metric("Total Original", len(df_grilla))
                     
             with col4:
-                # Efectividad del filtro
-                total_original = len(df_grilla)
-                total_filtrado = len(df_filtrado_final)
-                porcentaje = (total_filtrado / total_original * 100) if total_original > 0 else 0
-                st.metric("Datos Mostrados", f"{porcentaje:.1f}%")
+                # Distribución por componente
+                componente_col_estadistica = None
+                for nombre in posibles_nombres_componente:
+                    if nombre in df_filtrado_final.columns:
+                        componente_col_estadistica = nombre
+                        break
+                
+                if componente_col_estadistica:
+                    conteo_componentes = df_filtrado_final[componente_col_estadistica].value_counts()
+                    if len(conteo_componentes) > 0:
+                        componente_principal = conteo_componentes.index[0]
+                        count_componente = conteo_componentes.iloc[0]
+                        st.metric("Componente Principal", f"{componente_principal} ({count_componente})")
+                    else:
+                        st.metric("Componente Principal", "Sin datos")
+                else:
+                    # Efectividad del filtro
+                    total_original = len(df_grilla)
+                    total_filtrado = len(df_filtrado_final)
+                    porcentaje = (total_filtrado / total_original * 100) if total_original > 0 else 0
+                    st.metric("Datos Mostrados", f"{porcentaje:.1f}%")
                     
         except FileNotFoundError:
             st.error("⚠️ No se encontró el archivo 'data/EstadoGrilla.xlsx'")
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
+
+
+
+
+
 
 # ----------------------------
 # Ejecución principal
