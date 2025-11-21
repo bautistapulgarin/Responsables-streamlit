@@ -87,7 +87,7 @@ def main_app():
     with col_logo:
         st.image("loading.png", width=80)
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         " 🧑🏿 Responsables por Proyecto", 
         " 📈 Reporte de Avances", 
         " 🕰️ Horario Reuniones LP",
