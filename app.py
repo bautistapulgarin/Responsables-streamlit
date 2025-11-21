@@ -348,8 +348,7 @@ def main_app():
 
     # ======================================================
     # TAB 6
-    # ======================================================
-    # ======================================================
+       # ======================================================
     # TAB 6
     # ======================================================
     with tab6:
@@ -371,10 +370,10 @@ def main_app():
             st.markdown("---")
             col1, col2, col3 = st.columns(3)
             with col1:
-                # Contar proyectos únicos en lugar del total de filas
+                # Contar valores únicos del campo "Proyecto"
                 if 'Proyecto' in df_grilla.columns:
-                    total_proyectos = df_grilla['Proyecto'].nunique()
-                    st.metric("Total de Proyectos", total_proyectos)
+                    total_proyectos_unicos = df_grilla['Proyecto'].nunique()
+                    st.metric("Total de Proyectos", total_proyectos_unicos)
                 else:
                     st.metric("Total de Proyectos", "N/A")
                     
@@ -382,8 +381,8 @@ def main_app():
                 if 'Estado' in df_grilla.columns:
                     # Contar proyectos únicos con estado "Activo"
                     if 'Proyecto' in df_grilla.columns:
-                        proyectos_activos = df_grilla[df_grilla['Estado'] == 'Activo']['Proyecto'].nunique()
-                        st.metric("Proyectos Activos", proyectos_activos)
+                        proyectos_activos_unicos = df_grilla[df_grilla['Estado'] == 'Activo']['Proyecto'].nunique()
+                        st.metric("Proyectos Activos", proyectos_activos_unicos)
                     else:
                         activos = df_grilla[df_grilla['Estado'] == 'Activo'].shape[0]
                         st.metric("Proyectos Activos", activos)
@@ -395,15 +394,14 @@ def main_app():
                     fecha_mas_reciente = df_grilla['FechaInicio'].max() if 'FechaInicio' in df_grilla.columns else "N/A"
                     st.metric("Fecha Más Reciente", fecha_mas_reciente)
                 else:
-                    st.metric("Otra Métrica", "N/A")
+                    st.metric("Registros Totales", len(df_grilla))
                     
         except FileNotFoundError:
             st.error("⚠️ No se encontró el archivo 'data/EstadoGrilla.xlsx'")
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-        
-
+    
 
 
 
