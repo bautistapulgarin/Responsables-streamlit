@@ -594,7 +594,13 @@ def main_app():
                 # 2. Usar st.columns para crear el layout con las dos tablas
                 col_unica, col_grilla = st.columns([1, 3])
                 
-               
+                with col_unica:
+                    st.markdown("**Lista de Proyectos Únicos**")
+                    st.dataframe(
+                        df_proyectos_unicos,
+                        use_container_width=True,
+                        hide_index=True
+                    )
                     
                     # Mostrar estadísticas rápidas
                     st.metric("Proyectos mostrados", len(df_proyectos_unicos))
@@ -680,6 +686,20 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
