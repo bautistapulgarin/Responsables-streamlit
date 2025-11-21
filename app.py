@@ -349,7 +349,7 @@ def main_app():
     # ======================================================
     # TAB 6
     # ======================================================
-    
+        
     # ======================================================
     # TAB 6
     # ======================================================
@@ -361,14 +361,7 @@ def main_app():
             # Cargar el archivo EstadoGrilla desde GitHub
             df_grilla = pd.read_excel("data/EstadoGrilla.xlsx")
             
-            # MOSTRAR INFORMACIÓN DE DEPURACIÓN (esto te ayudará a ver qué columnas tienes)
-            st.write("🔍 **Información de depuración:**")
-            st.write(f"Columnas disponibles: {list(df_grilla.columns)}")
-            st.write(f"Primeras filas del dataset:")
-            st.write(df_grilla.head())
-            
             # Mostrar todos los campos en una tabla
-            st.markdown("### 📊 Datos completos")
             st.dataframe(
                 df_grilla,
                 use_container_width=True,
@@ -377,81 +370,35 @@ def main_app():
             
             # Opcional: Mostrar estadísticas básicas
             st.markdown("---")
-            st.markdown("### 📈 Estadísticas")
-            
             col1, col2, col3 = st.columns(3)
             with col1:
-                # BUSCAR LA COLUMNA CORRECTA PARA PROYECTOS
-                posibles_nombres_proyecto = ['Proyecto', 'PROYECTO', 'proyecto', 'Nombre del Proyecto', 'Project', 'PROJECT']
-                columna_proyecto = None
-                
-                for nombre in posibles_nombres_proyecto:
-                    if nombre in df_grilla.columns:
-                        columna_proyecto = nombre
-                        break
-                
-                if columna_proyecto:
-                    # Contar valores únicos del campo de proyectos - SIN DUPLICADOS
-                    proyectos_unicos = df_grilla[columna_proyecto].drop_duplicates()
+                # Contar valores únicos del campo "Proyecto" - SIN DUPLICADOS
+                if 'Proyecto' in df_grilla.columns:
+                    # Eliminar duplicados y contar proyectos únicos
+                    proyectos_unicos = df_grilla['Proyecto'].drop_duplicates()
                     total_proyectos_unicos = len(proyectos_unicos)
                     st.metric("Total de Proyectos", total_proyectos_unicos)
-                    st.caption(f"Usando columna: '{columna_proyecto}'")
                 else:
                     st.metric("Total de Proyectos", "N/A")
-                    st.error("No se encontró la columna de proyectos")
-                    st.info(f"Columnas disponibles: {list(df_grilla.columns)}")
                     
             with col2:
-                # BUSCAR LA COLUMNA CORRECTA PARA ESTADO
-                posibles_nombres_estado = ['Estado', 'ESTADO', 'estado', 'Status', 'STATUS', 'Estatus']
-                columna_estado = None
-                
-                for nombre in posibles_nombres_estado:
-                    if nombre in df_grilla.columns:
-                        columna_estado = nombre
-                        break
-                
-                if columna_estado and columna_proyecto:
+                if 'Estado' in df_grilla.columns:
                     # Contar proyectos únicos con estado "Activo" - SIN DUPLICADOS
-                    df_sin_duplicados = df_grilla.drop_duplicates(subset=[columna_proyecto], keep='first')
-                    
-                    # Buscar valores posibles para "Activo"
-                    estados_activos = ['Activo', 'ACTIVO', 'activo', 'Active', 'ACTIVE', 'Activated', 'ACTIVATED']
-                    estado_encontrado = None
-                    
-                    for estado in estados_activos:
-                        if estado in df_sin_duplicados[columna_estado].values:
-                            estado_encontrado = estado
-                            break
-                    
-                    if estado_encontrado:
-                        proyectos_activos_unicos = df_sin_duplicados[df_sin_duplicados[columna_estado] == estado_encontrado].shape[0]
+                    if 'Proyecto' in df_grilla.columns:
+                        # Primero eliminar duplicados de proyectos, manteniendo el primer registro
+                        df_sin_duplicados = df_grilla.drop_duplicates(subset=['Proyecto'], keep='first')
+                        proyectos_activos_unicos = df_sin_duplicados[df_sin_duplicados['Estado'] == 'Activo'].shape[0]
                         st.metric("Proyectos Activos", proyectos_activos_unicos)
-                        st.caption(f"Estado: '{estado_encontrado}'")
                     else:
-                        st.metric("Proyectos Activos", 0)
-                        st.caption("No se encontraron proyectos con estado 'Activo'")
+                        activos = df_grilla[df_grilla['Estado'] == 'Activo'].shape[0]
+                        st.metric("Proyectos Activos", activos)
                 else:
                     st.metric("Proyectos Activos", "N/A")
                     
             with col3:
-                # BUSCAR COLUMNA DE FECHA
-                posibles_nombres_fecha = ['FechaInicio', 'FECHAINICIO', 'fechainicio', 'Fecha', 'FECHA', 'fecha', 
-                                        'StartDate', 'STARTDATE', 'Fecha de Inicio']
-                columna_fecha = None
-                
-                for nombre in posibles_nombres_fecha:
-                    if nombre in df_grilla.columns:
-                        columna_fecha = nombre
-                        break
-                
-                if columna_fecha:
-                    try:
-                        fecha_mas_reciente = df_grilla[columna_fecha].max()
-                        st.metric("Fecha Más Reciente", fecha_mas_reciente)
-                        st.caption(f"Columna: '{columna_fecha}'")
-                    except:
-                        st.metric("Fecha Más Reciente", "Error")
+                if 'FechaInicio' in df_grilla.columns:
+                    fecha_mas_reciente = df_grilla['FechaInicio'].max() if 'FechaInicio' in df_grilla.columns else "N/A"
+                    st.metric("Fecha Más Reciente", fecha_mas_reciente)
                 else:
                     st.metric("Registros Totales", len(df_grilla))
                     
@@ -460,10 +407,8 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-
-
-
-
+    
+    
 
 
 
