@@ -349,62 +349,11 @@ def main_app():
     # ======================================================
     # TAB 6
     # ======================================================
-    # TAB 6
-    # ======================================================
     with tab6:
         st.subheader("🏢 Proyectos en grilla")
         st.info("Se refleja el estado de activación de la funcionalidad de grilla")
+
         
-        try:
-            # Cargar el archivo EstadoGrilla desde GitHub
-            df_grilla = pd.read_excel("data/EstadoGrilla.xlsx")
-            
-            # Mostrar todos los campos en una tabla SIN ETIQUETAS
-            st.dataframe(
-                df_grilla,
-                use_container_width=True,
-                hide_index=True,
-                column_config={col: None for col in df_grilla.columns}  # Esto oculta los headers de columnas
-            )
-            
-            # Opcional: Mostrar estadísticas básicas
-            st.markdown("---")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                # Contar valores únicos del campo "Proyecto"
-                if 'Proyecto' in df_grilla.columns:
-                    total_proyectos_unicos = df_grilla['Proyecto'].nunique()
-                    st.metric("Total de Proyectos", total_proyectos_unicos)
-                else:
-                    st.metric("Total de Proyectos", "N/A")
-                    
-            with col2:
-                if 'Estado' in df_grilla.columns:
-                    # Contar proyectos únicos con estado "Activo"
-                    if 'Proyecto' in df_grilla.columns:
-                        proyectos_activos_unicos = df_grilla[df_grilla['Estado'] == 'Activo']['Proyecto'].nunique()
-                        st.metric("Proyectos Activos", proyectos_activos_unicos)
-                    else:
-                        activos = df_grilla[df_grilla['Estado'] == 'Activo'].shape[0]
-                        st.metric("Proyectos Activos", activos)
-                else:
-                    st.metric("Proyectos Activos", "N/A")
-                    
-            with col3:
-                if 'FechaInicio' in df_grilla.columns:
-                    fecha_mas_reciente = df_grilla['FechaInicio'].max() if 'FechaInicio' in df_grilla.columns else "N/A"
-                    st.metric("Fecha Más Reciente", fecha_mas_reciente)
-                else:
-                    st.metric("Registros Totales", len(df_grilla))
-                    
-        except FileNotFoundError:
-            st.error("⚠️ No se encontró el archivo 'data/EstadoGrilla.xlsx'")
-            st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
-        except Exception as e:
-            st.error(f"Error al cargar el archivo: {e}")
-    
-    
-    
 
 
 
