@@ -371,21 +371,19 @@ def main_app():
             if "filtro_prioridad" not in st.session_state:
                 st.session_state.filtro_prioridad = []
             
-            # Botón para restablecer filtros
+            # Botón para restablecer filtros - CON LÓGICA MEJORADA
             if st.button("🔄 Restablecer filtros", key="reset_filtros_grilla"):
                 st.session_state.filtro_proyecto = []
                 st.session_state.filtro_estado_grilla = []
                 st.session_state.filtro_prioridad = []
+                st.success("Filtros restablecidos correctamente")
                 st.rerun()
-            
-            # Crear DataFrame base para filtros
-            df_filtrado_base = df_grilla.copy()
             
             # Identificar la columna de estado
             estado_col = None
             posibles_nombres_estado = ['Estado', 'Estado grilla', 'EstadoGrilla', 'Estado_grilla', 'Estado Grilla', 'EstadoGrila']
             for nombre in posibles_nombres_estado:
-                if nombre in df_filtrado_base.columns:
+                if nombre in df_grilla.columns:
                     estado_col = nombre
                     break
             
@@ -395,20 +393,25 @@ def main_app():
             with col1:
                 # Filtro por Estado grilla (PRIMERO)
                 if estado_col:
-                    opciones_estado = sorted(df_filtrado_base[estado_col].dropna().unique().tolist())
+                    opciones_estado = sorted(df_grilla[estado_col].dropna().unique().tolist())
                     filtro_estado_grilla = st.multiselect(
                         "📊 Estado grilla",
                         options=opciones_estado,
                         default=st.session_state.filtro_estado_grilla,
                         key="filtro_estado_grilla_selector"
                     )
-                    st.session_state.filtro_estado_grilla = filtro_estado_grilla
-                    
-                    # Aplicar filtro de estado al DataFrame base para los otros filtros
-                    if st.session_state.filtro_estado_grilla:
-                        df_filtrado_base = df_filtrado_base[df_filtrado_base[estado_col].isin(st.session_state.filtro_estado_grilla)]
+                    # Actualizar session state solo si hay cambios
+                    if filtro_estado_grilla != st.session_state.filtro_estado_grilla:
+                        st.session_state.filtro_estado_grilla = filtro_estado_grilla
                 else:
                     st.info("No hay columna de estado disponible")
+            
+            # Crear DataFrame base para filtros dependientes
+            df_filtrado_base = df_grilla.copy()
+            
+            # Aplicar filtro de estado al DataFrame base para los otros filtros
+            if st.session_state.filtro_estado_grilla and estado_col:
+                df_filtrado_base = df_filtrado_base[df_filtrado_base[estado_col].isin(st.session_state.filtro_estado_grilla)]
             
             with col2:
                 # SEGUNDO FILTRO: Proyecto (dependiente del estado)
@@ -421,9 +424,15 @@ def main_app():
                         default=st.session_state.filtro_proyecto,
                         key="filtro_proyecto_selector"
                     )
-                    st.session_state.filtro_proyecto = filtro_proyecto
+                    # Actualizar session state solo si hay cambios
+                    if filtro_proyecto != st.session_state.filtro_proyecto:
+                        st.session_state.filtro_proyecto = filtro_proyecto
                 else:
                     st.info("No hay columna 'Proyecto' disponible")
+            
+            # Aplicar filtro de proyecto al DataFrame base para prioridad
+            if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado_base.columns:
+                df_filtrado_base = df_filtrado_base[df_filtrado_base['Proyecto'].isin(st.session_state.filtro_proyecto)]
             
             # TERCER FILTRO: Prioridad (dependiente de estado y proyecto)
             col3, col4 = st.columns(2)
@@ -431,28 +440,34 @@ def main_app():
             with col3:
                 # Filtro por Prioridad
                 if 'Prioridad' in df_filtrado_base.columns:
-                    # Aplicar filtros anteriores al DataFrame para las opciones de prioridad
-                    df_para_prioridad = df_filtrado_base.copy()
-                    
-                    # Aplicar filtro de proyecto si existe
-                    if st.session_state.filtro_proyecto and 'Proyecto' in df_para_prioridad.columns:
-                        df_para_prioridad = df_para_prioridad[df_para_prioridad['Proyecto'].isin(st.session_state.filtro_proyecto)]
-                    
-                    opciones_prioridad = sorted(df_para_prioridad['Prioridad'].dropna().unique().tolist())
+                    opciones_prioridad = sorted(df_filtrado_base['Prioridad'].dropna().unique().tolist())
                     filtro_prioridad = st.multiselect(
                         "🎯 Prioridad",
                         options=opciones_prioridad,
                         default=st.session_state.filtro_prioridad,
                         key="filtro_prioridad_selector"
                     )
-                    st.session_state.filtro_prioridad = filtro_prioridad
+                    # Actualizar session state solo si hay cambios
+                    if filtro_prioridad != st.session_state.filtro_prioridad:
+                        st.session_state.filtro_prioridad = filtro_prioridad
                 else:
                     st.info("No hay columna 'Prioridad' disponible")
             
             with col4:
-                # Espacio para futuros filtros o información
-                if st.session_state.filtro_estado_grilla or st.session_state.filtro_proyecto or st.session_state.filtro_prioridad:
-                    st.info("💡 Los filtros se aplican en cascada: Estado → Proyecto → Prioridad")
+                # Mostrar estado actual de los filtros
+                if (st.session_state.filtro_estado_grilla or 
+                    st.session_state.filtro_proyecto or 
+                    st.session_state.filtro_prioridad):
+                    
+                    st.info("💡 **Filtros activos:**")
+                    if st.session_state.filtro_estado_grilla:
+                        st.write(f"• Estado: {', '.join(st.session_state.filtro_estado_grilla)}")
+                    if st.session_state.filtro_proyecto:
+                        st.write(f"• Proyectos: {len(st.session_state.filtro_proyecto)} seleccionados")
+                    if st.session_state.filtro_prioridad:
+                        st.write(f"• Prioridad: {', '.join(st.session_state.filtro_prioridad)}")
+                else:
+                    st.info("🔍 No hay filtros activos - mostrando todos los datos")
             
             # APLICAR TODOS LOS FILTROS AL DATAFRAME FINAL
             df_filtrado_final = df_grilla.copy()
@@ -529,8 +544,11 @@ def main_app():
                 # Proyectos activos
                 if estado_col and 'Proyecto' in df_filtrado_final.columns:
                     df_sin_duplicados = df_filtrado_final.drop_duplicates(subset=['Proyecto'], keep='first')
-                    proyectos_activos_unicos = df_sin_duplicados[df_sin_duplicados[estado_col] == 'Activo'].shape[0]
-                    st.metric("Proyectos Activos", proyectos_activos_unicos)
+                    if 'Activo' in df_sin_duplicados[estado_col].values:
+                        proyectos_activos_unicos = df_sin_duplicados[df_sin_duplicados[estado_col] == 'Activo'].shape[0]
+                        st.metric("Proyectos Activos", proyectos_activos_unicos)
+                    else:
+                        st.metric("Proyectos Activos", 0)
                 else:
                     st.metric("Registros Filtrados", len(df_filtrado_final))
                     
@@ -538,8 +556,12 @@ def main_app():
                 # Distribución por estado
                 if estado_col:
                     conteo_estados = df_filtrado_final[estado_col].value_counts()
-                    estado_principal = conteo_estados.index[0] if len(conteo_estados) > 0 else "N/A"
-                    st.metric("Estado Principal", estado_principal)
+                    if len(conteo_estados) > 0:
+                        estado_principal = conteo_estados.index[0]
+                        count_principal = conteo_estados.iloc[0]
+                        st.metric("Estado Principal", f"{estado_principal} ({count_principal})")
+                    else:
+                        st.metric("Estado Principal", "Sin datos")
                 else:
                     if 'FechaInicio' in df_filtrado_final.columns:
                         fecha_mas_reciente = df_filtrado_final['FechaInicio'].max()
@@ -560,11 +582,10 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-
-
-
-
-
+    
+    
+    
+    
 
 
 
