@@ -378,13 +378,43 @@ def main_app():
                 st.session_state.filtro_prioridad = []
                 st.rerun()
             
-            # Crear columnas para los filtros
-            col1, col2, col3 = st.columns(3)
+            # Crear DataFrame base para filtros
+            df_filtrado_base = df_grilla.copy()
+            
+            # Identificar la columna de estado
+            estado_col = None
+            posibles_nombres_estado = ['Estado', 'Estado grilla', 'EstadoGrilla', 'Estado_grilla', 'Estado Grilla', 'EstadoGrila']
+            for nombre in posibles_nombres_estado:
+                if nombre in df_filtrado_base.columns:
+                    estado_col = nombre
+                    break
+            
+            # PRIMER FILTRO: Estado grilla
+            col1, col2 = st.columns(2)
             
             with col1:
-                # Filtro por Proyecto
-                if 'Proyecto' in df_grilla.columns:
-                    opciones_proyecto = sorted(df_grilla['Proyecto'].dropna().unique().tolist())
+                # Filtro por Estado grilla (PRIMERO)
+                if estado_col:
+                    opciones_estado = sorted(df_filtrado_base[estado_col].dropna().unique().tolist())
+                    filtro_estado_grilla = st.multiselect(
+                        "📊 Estado grilla",
+                        options=opciones_estado,
+                        default=st.session_state.filtro_estado_grilla,
+                        key="filtro_estado_grilla_selector"
+                    )
+                    st.session_state.filtro_estado_grilla = filtro_estado_grilla
+                    
+                    # Aplicar filtro de estado al DataFrame base para los otros filtros
+                    if st.session_state.filtro_estado_grilla:
+                        df_filtrado_base = df_filtrado_base[df_filtrado_base[estado_col].isin(st.session_state.filtro_estado_grilla)]
+                else:
+                    st.info("No hay columna de estado disponible")
+            
+            with col2:
+                # SEGUNDO FILTRO: Proyecto (dependiente del estado)
+                if 'Proyecto' in df_filtrado_base.columns:
+                    # Las opciones de proyecto se basan en el DataFrame ya filtrado por estado
+                    opciones_proyecto = sorted(df_filtrado_base['Proyecto'].dropna().unique().tolist())
                     filtro_proyecto = st.multiselect(
                         "📋 Proyecto",
                         options=opciones_proyecto,
@@ -395,32 +425,20 @@ def main_app():
                 else:
                     st.info("No hay columna 'Proyecto' disponible")
             
-            with col2:
-                # Filtro por Estado grilla (asumiendo que la columna se llama 'Estado' o similar)
-                estado_col = None
-                posibles_nombres_estado = ['Estado', 'Estado grilla', 'EstadoGrilla', 'Estado_grilla', 'Estado Grilla']
-                
-                for nombre in posibles_nombres_estado:
-                    if nombre in df_grilla.columns:
-                        estado_col = nombre
-                        break
-                
-                if estado_col:
-                    opciones_estado = sorted(df_grilla[estado_col].dropna().unique().tolist())
-                    filtro_estado_grilla = st.multiselect(
-                        "📊 Estado grilla",
-                        options=opciones_estado,
-                        default=st.session_state.filtro_estado_grilla,
-                        key="filtro_estado_grilla_selector"
-                    )
-                    st.session_state.filtro_estado_grilla = filtro_estado_grilla
-                else:
-                    st.info("No hay columna de estado disponible")
+            # TERCER FILTRO: Prioridad (dependiente de estado y proyecto)
+            col3, col4 = st.columns(2)
             
             with col3:
                 # Filtro por Prioridad
-                if 'Prioridad' in df_grilla.columns:
-                    opciones_prioridad = sorted(df_grilla['Prioridad'].dropna().unique().tolist())
+                if 'Prioridad' in df_filtrado_base.columns:
+                    # Aplicar filtros anteriores al DataFrame para las opciones de prioridad
+                    df_para_prioridad = df_filtrado_base.copy()
+                    
+                    # Aplicar filtro de proyecto si existe
+                    if st.session_state.filtro_proyecto and 'Proyecto' in df_para_prioridad.columns:
+                        df_para_prioridad = df_para_prioridad[df_para_prioridad['Proyecto'].isin(st.session_state.filtro_proyecto)]
+                    
+                    opciones_prioridad = sorted(df_para_prioridad['Prioridad'].dropna().unique().tolist())
                     filtro_prioridad = st.multiselect(
                         "🎯 Prioridad",
                         options=opciones_prioridad,
@@ -431,33 +449,32 @@ def main_app():
                 else:
                     st.info("No hay columna 'Prioridad' disponible")
             
-            # Aplicar filtros al DataFrame
-            df_filtrado = df_grilla.copy()
+            with col4:
+                # Espacio para futuros filtros o información
+                if st.session_state.filtro_estado_grilla or st.session_state.filtro_proyecto or st.session_state.filtro_prioridad:
+                    st.info("💡 Los filtros se aplican en cascada: Estado → Proyecto → Prioridad")
             
-            # Aplicar filtro de Proyecto
-            if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado.columns:
-                df_filtrado = df_filtrado[df_filtrado['Proyecto'].isin(st.session_state.filtro_proyecto)]
+            # APLICAR TODOS LOS FILTROS AL DATAFRAME FINAL
+            df_filtrado_final = df_grilla.copy()
             
             # Aplicar filtro de Estado grilla
-            estado_col_actual = None
-            for nombre in posibles_nombres_estado:
-                if nombre in df_filtrado.columns:
-                    estado_col_actual = nombre
-                    break
+            if st.session_state.filtro_estado_grilla and estado_col:
+                df_filtrado_final = df_filtrado_final[df_filtrado_final[estado_col].isin(st.session_state.filtro_estado_grilla)]
             
-            if st.session_state.filtro_estado_grilla and estado_col_actual:
-                df_filtrado = df_filtrado[df_filtrado[estado_col_actual].isin(st.session_state.filtro_estado_grilla)]
+            # Aplicar filtro de Proyecto
+            if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado_final.columns:
+                df_filtrado_final = df_filtrado_final[df_filtrado_final['Proyecto'].isin(st.session_state.filtro_proyecto)]
             
             # Aplicar filtro de Prioridad
-            if st.session_state.filtro_prioridad and 'Prioridad' in df_filtrado.columns:
-                df_filtrado = df_filtrado[df_filtrado['Prioridad'].isin(st.session_state.filtro_prioridad)]
+            if st.session_state.filtro_prioridad and 'Prioridad' in df_filtrado_final.columns:
+                df_filtrado_final = df_filtrado_final[df_filtrado_final['Prioridad'].isin(st.session_state.filtro_prioridad)]
             
             st.markdown("---")
             
-            # --- NUEVA LÓGICA PARA MOSTRAR TABLA DE PROYECTOS ÚNICOS ---
+            # --- MOSTRAR TABLAS FILTRADAS ---
             if 'Proyecto' in df_grilla.columns:
                 # 1. Obtener los proyectos únicos del DataFrame filtrado
-                proyectos_unicos_filtrados = df_filtrado['Proyecto'].dropna().drop_duplicates().sort_values().reset_index(drop=True)
+                proyectos_unicos_filtrados = df_filtrado_final['Proyecto'].dropna().drop_duplicates().sort_values().reset_index(drop=True)
                 df_proyectos_unicos = pd.DataFrame(proyectos_unicos_filtrados, columns=['Proyecto Único'])
                 
                 # 2. Usar st.columns para crear el layout con las dos tablas
@@ -470,64 +487,90 @@ def main_app():
                         use_container_width=True,
                         hide_index=True
                     )
+                    
+                    # Mostrar estadísticas rápidas
+                    st.metric("Proyectos mostrados", len(df_proyectos_unicos))
                 
                 with col_grilla:
                     st.markdown("**Datos Completos de la Grilla (Filtrados)**")
                     # Mostrar el DataFrame filtrado
                     st.dataframe(
-                        df_filtrado,
+                        df_filtrado_final,
                         use_container_width=True,
                         hide_index=True
                     )
                     
                     # Mostrar contador de resultados
-                    st.caption(f"Mostrando {len(df_filtrado)} de {len(df_grilla)} registros")
+                    st.caption(f"Mostrando {len(df_filtrado_final)} de {len(df_grilla)} registros")
             else:
                 st.warning("La columna 'Proyecto' no se encontró en el archivo.")
                 # Si no está la columna, se muestra la tabla completa normalmente
                 st.dataframe(
-                    df_filtrado,
+                    df_filtrado_final,
                     use_container_width=True,
                     hide_index=True
                 )
-            # ------------------------------------------------------------------
             
-            # Opcional: Mostrar estadísticas básicas
+            # --- ESTADÍSTICAS DETALLADAS ---
             st.markdown("---")
-            col1, col2, col3 = st.columns(3)
+            st.subheader("📈 Estadísticas")
+            
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
-                # Contar valores únicos del campo "Proyecto" - SIN DUPLICADOS
-                if 'Proyecto' in df_filtrado.columns:
-                    proyectos_unicos = df_filtrado['Proyecto'].drop_duplicates()
+                # Total de proyectos únicos en los resultados filtrados
+                if 'Proyecto' in df_filtrado_final.columns:
+                    proyectos_unicos = df_filtrado_final['Proyecto'].drop_duplicates()
                     total_proyectos_unicos = len(proyectos_unicos)
-                    st.metric("Total de Proyectos", total_proyectos_unicos)
+                    st.metric("Proyectos Únicos", total_proyectos_unicos)
                 else:
-                    st.metric("Total de Proyectos", "N/A")
+                    st.metric("Registros", len(df_filtrado_final))
                     
             with col2:
-                if 'Estado' in df_filtrado.columns:
-                    if 'Proyecto' in df_filtrado.columns:
-                        df_sin_duplicados = df_filtrado.drop_duplicates(subset=['Proyecto'], keep='first')
-                        proyectos_activos_unicos = df_sin_duplicados[df_sin_duplicados['Estado'] == 'Activo'].shape[0]
-                        st.metric("Proyectos Activos", proyectos_activos_unicos)
-                    else:
-                        activos = df_filtrado[df_filtrado['Estado'] == 'Activo'].shape[0]
-                        st.metric("Proyectos Activos", activos)
+                # Proyectos activos
+                if estado_col and 'Proyecto' in df_filtrado_final.columns:
+                    df_sin_duplicados = df_filtrado_final.drop_duplicates(subset=['Proyecto'], keep='first')
+                    proyectos_activos_unicos = df_sin_duplicados[df_sin_duplicados[estado_col] == 'Activo'].shape[0]
+                    st.metric("Proyectos Activos", proyectos_activos_unicos)
                 else:
-                    st.metric("Proyectos Activos", "N/A")
+                    st.metric("Registros Filtrados", len(df_filtrado_final))
                     
             with col3:
-                if 'FechaInicio' in df_filtrado.columns:
-                    fecha_mas_reciente = df_filtrado['FechaInicio'].max() if 'FechaInicio' in df_filtrado.columns else "N/A"
-                    st.metric("Fecha Más Reciente", fecha_mas_reciente)
+                # Distribución por estado
+                if estado_col:
+                    conteo_estados = df_filtrado_final[estado_col].value_counts()
+                    estado_principal = conteo_estados.index[0] if len(conteo_estados) > 0 else "N/A"
+                    st.metric("Estado Principal", estado_principal)
                 else:
-                    st.metric("Registros Filtrados", len(df_filtrado))
+                    if 'FechaInicio' in df_filtrado_final.columns:
+                        fecha_mas_reciente = df_filtrado_final['FechaInicio'].max()
+                        st.metric("Fecha Más Reciente", fecha_mas_reciente)
+                    else:
+                        st.metric("Filtros Activos", 
+                                 f"{len(st.session_state.filtro_estado_grilla)}E/{len(st.session_state.filtro_proyecto)}P")
+                    
+            with col4:
+                # Efectividad del filtro
+                total_original = len(df_grilla)
+                total_filtrado = len(df_filtrado_final)
+                porcentaje = (total_filtrado / total_original * 100) if total_original > 0 else 0
+                st.metric("Datos Mostrados", f"{porcentaje:.1f}%")
                     
         except FileNotFoundError:
             st.error("⚠️ No se encontró el archivo 'data/EstadoGrilla.xlsx'")
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
+
+
+
+
+
+
+
+
+
+
+
 
 
 
