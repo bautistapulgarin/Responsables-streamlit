@@ -92,7 +92,8 @@ def main_app():
         " 📈 Reporte de Avances", 
         " 🕰️ Horario Reuniones LP",
         " 📜 Directorio Documental",
-        " 📋 Formulario"
+        " 📋 Formulario",
+        " 🏢 Proyectos en grilla"
     ])
     
     # ======================================================
@@ -343,6 +344,20 @@ def main_app():
                     st.success("Registro enviado correctamente ✅")
                 else:
                     st.warning("Por favor completa al menos el nombre y el comentario.")
+
+
+    # ======================================================
+    # TAB 6
+    # ======================================================
+    with tab5:
+        st.subheader("🏢 Proyectos en grilla")
+        st.info("Se refleja el estado de activación de la funcionalidad de grilla")
+
+        
+
+
+
+
 
 
 # ----------------------------
