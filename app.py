@@ -411,6 +411,8 @@ def main_app():
                 st.session_state.filtro_prioridad = []
             if "filtro_componente" not in st.session_state:
                 st.session_state.filtro_componente = []
+            if "filtro_alistamiento" not in st.session_state:  # NUEVO: filtro para Alistamiento
+                st.session_state.filtro_alistamiento = []
             
             # Control único para el reset
             if "reset_counter" not in st.session_state:
@@ -422,6 +424,7 @@ def main_app():
                 st.session_state.filtro_estado_grilla = []
                 st.session_state.filtro_prioridad = []
                 st.session_state.filtro_componente = []
+                st.session_state.filtro_alistamiento = []  # NUEVO: reset del filtro Alistamiento
                 st.session_state.reset_counter += 1
                 st.success("Filtros restablecidos correctamente")
                 st.rerun()
@@ -445,11 +448,34 @@ def main_app():
                         "📊 Estado grilla",
                         options=opciones_estado,
                         default=st.session_state.filtro_estado_grilla,
-                        key=f"estado_grilla_{st.session_state.reset_counter}"  # Clave única que cambia con cada reset
+                        key=f"estado_grilla_{st.session_state.reset_counter}"
                     )
                     st.session_state.filtro_estado_grilla = filtro_estado_grilla
                 else:
                     st.info("No hay columna de estado disponible")
+            
+            with col2:
+                # NUEVO FILTRO: Alistamiento - CON CLAVE ÚNICA PARA RESET
+                # Identificar la columna de Alistamiento
+                alistamiento_col = None
+                posibles_nombres_alistamiento = ['Alistamiento', 'Alist', 'AlistamientoGrilla', 'Alistamiento_grilla', 'Alistamiento Grilla']
+                
+                for nombre in posibles_nombres_alistamiento:
+                    if nombre in df_grilla.columns:
+                        alistamiento_col = nombre
+                        break
+                
+                if alistamiento_col:
+                    opciones_alistamiento = sorted(df_grilla[alistamiento_col].dropna().unique().tolist())
+                    filtro_alistamiento = st.multiselect(
+                        "🛠️ Alistamiento",  # NUEVO: icono y etiqueta
+                        options=opciones_alistamiento,
+                        default=st.session_state.filtro_alistamiento,
+                        key=f"alistamiento_{st.session_state.reset_counter}"  # Clave única que cambia con cada reset
+                    )
+                    st.session_state.filtro_alistamiento = filtro_alistamiento
+                else:
+                    st.info("No hay columna 'Alistamiento' disponible")
             
             # Crear DataFrame base para filtros dependientes
             df_filtrado_base = df_grilla.copy()
@@ -458,16 +484,22 @@ def main_app():
             if st.session_state.filtro_estado_grilla and estado_col:
                 df_filtrado_base = df_filtrado_base[df_filtrado_base[estado_col].isin(st.session_state.filtro_estado_grilla)]
             
-            with col2:
-                # SEGUNDO FILTRO: Proyecto (dependiente del estado) - CON CLAVE ÚNICA PARA RESET
+            # Aplicar filtro de alistamiento al DataFrame base para los otros filtros
+            if st.session_state.filtro_alistamiento and alistamiento_col:
+                df_filtrado_base = df_filtrado_base[df_filtrado_base[alistamiento_col].isin(st.session_state.filtro_alistamiento)]
+            
+            # SEGUNDO FILTRO: Proyecto (dependiente del estado y alistamiento)
+            col3, col4 = st.columns(2)
+            
+            with col3:
                 if 'Proyecto' in df_filtrado_base.columns:
-                    # Las opciones de proyecto se basan en el DataFrame ya filtrado por estado
+                    # Las opciones de proyecto se basan en el DataFrame ya filtrado por estado y alistamiento
                     opciones_proyecto = sorted(df_filtrado_base['Proyecto'].dropna().unique().tolist())
                     filtro_proyecto = st.multiselect(
                         "📋 Proyecto",
                         options=opciones_proyecto,
                         default=st.session_state.filtro_proyecto,
-                        key=f"proyecto_{st.session_state.reset_counter}"  # Clave única que cambia con cada reset
+                        key=f"proyecto_{st.session_state.reset_counter}"
                     )
                     st.session_state.filtro_proyecto = filtro_proyecto
                 else:
@@ -477,10 +509,10 @@ def main_app():
             if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado_base.columns:
                 df_filtrado_base = df_filtrado_base[df_filtrado_base['Proyecto'].isin(st.session_state.filtro_proyecto)]
             
-            # TERCER FILTRO: Prioridad (dependiente de estado y proyecto) - CON CLAVE ÚNICA PARA RESET
-            col3, col4 = st.columns(2)
+            # TERCER FILTRO: Prioridad (dependiente de estado, alistamiento y proyecto)
+            col5, col6 = st.columns(2)
             
-            with col3:
+            with col5:
                 # Filtro por Prioridad
                 if 'Prioridad' in df_filtrado_base.columns:
                     opciones_prioridad = sorted(df_filtrado_base['Prioridad'].dropna().unique().tolist())
@@ -488,14 +520,14 @@ def main_app():
                         "🎯 Prioridad",
                         options=opciones_prioridad,
                         default=st.session_state.filtro_prioridad,
-                        key=f"prioridad_{st.session_state.reset_counter}"  # Clave única que cambia con cada reset
+                        key=f"prioridad_{st.session_state.reset_counter}"
                     )
                     st.session_state.filtro_prioridad = filtro_prioridad
                 else:
                     st.info("No hay columna 'Prioridad' disponible")
             
-            with col4:
-                # CUARTO FILTRO: Componente (dependiente de estado, proyecto y prioridad) - CON CLAVE ÚNICA PARA RESET
+            with col6:
+                # CUARTO FILTRO: Componente (dependiente de estado, alistamiento, proyecto y prioridad)
                 # Identificar la columna de componente
                 componente_col = None
                 posibles_nombres_componente = ['Componente', 'Component', 'ComponenteGrilla', 'Componente_grilla', 'Componente Grilla']
@@ -518,7 +550,7 @@ def main_app():
                         "⚙️ Componente",
                         options=opciones_componente,
                         default=st.session_state.filtro_componente,
-                        key=f"componente_{st.session_state.reset_counter}"  # Clave única que cambia con cada reset
+                        key=f"componente_{st.session_state.reset_counter}"
                     )
                     st.session_state.filtro_componente = filtro_componente
                 else:
@@ -534,6 +566,13 @@ def main_app():
                 filtros_activos = True
             else:
                 info_text += "• 📊 **Estado grilla:** Sin filtro\n"
+            
+            # NUEVO: Mostrar estado del filtro Alistamiento
+            if st.session_state.filtro_alistamiento:
+                info_text += f"• 🛠️ **Alistamiento:** {', '.join(st.session_state.filtro_alistamiento)}\n"
+                filtros_activos = True
+            else:
+                info_text += "• 🛠️ **Alistamiento:** Sin filtro\n"
             
             if st.session_state.filtro_proyecto:
                 info_text += f"• 📋 **Proyectos:** {len(st.session_state.filtro_proyecto)} seleccionados\n"
@@ -564,6 +603,10 @@ def main_app():
             # Aplicar filtro de Estado grilla
             if st.session_state.filtro_estado_grilla and estado_col:
                 df_filtrado_final = df_filtrado_final[df_filtrado_final[estado_col].isin(st.session_state.filtro_estado_grilla)]
+            
+            # NUEVO: Aplicar filtro de Alistamiento
+            if st.session_state.filtro_alistamiento and alistamiento_col:
+                df_filtrado_final = df_filtrado_final[df_filtrado_final[alistamiento_col].isin(st.session_state.filtro_alistamiento)]
             
             # Aplicar filtro de Proyecto
             if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado_final.columns:
@@ -659,21 +702,15 @@ def main_app():
                     st.metric("Total Original", len(df_grilla))
                     
             with col4:
-                # Distribución por componente
-                componente_col_estadistica = None
-                for nombre in posibles_nombres_componente:
-                    if nombre in df_filtrado_final.columns:
-                        componente_col_estadistica = nombre
-                        break
-                
-                if componente_col_estadistica:
-                    conteo_componentes = df_filtrado_final[componente_col_estadistica].value_counts()
-                    if len(conteo_componentes) > 0:
-                        componente_principal = conteo_componentes.index[0]
-                        count_componente = conteo_componentes.iloc[0]
-                        st.metric("Componente Principal", f"{componente_principal} ({count_componente})")
+                # NUEVO: Distribución por Alistamiento
+                if alistamiento_col:
+                    conteo_alistamiento = df_filtrado_final[alistamiento_col].value_counts()
+                    if len(conteo_alistamiento) > 0:
+                        alistamiento_principal = conteo_alistamiento.index[0]
+                        count_alistamiento = conteo_alistamiento.iloc[0]
+                        st.metric("Alistamiento Principal", f"{alistamiento_principal} ({count_alistamiento})")
                     else:
-                        st.metric("Componente Principal", "Sin datos")
+                        st.metric("Alistamiento Principal", "Sin datos")
                 else:
                     # Efectividad del filtro
                     total_original = len(df_grilla)
@@ -686,18 +723,6 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
