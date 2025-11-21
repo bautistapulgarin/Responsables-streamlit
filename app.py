@@ -126,13 +126,14 @@ def main_app():
     with col_logo:
         st.image("loading.png", width=80)
 
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         " 🧑🏿 Responsables por Proyecto", 
         " 📈 Reporte de Avances", 
         " 🕰️ Horario Reuniones LP",
         " 📜 Directorio Documental",
         " 📋 Formulario",
-        " 🏢 Proyectos en grilla"
+        " 🏢 Proyectos en grilla",
+        " 📅 Cronograma de visitas"
     ])
     
     # ======================================================
@@ -723,6 +724,16 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
+
+
+    # ======================================================
+    # TAB 7
+    # ======================================================
+    with tab7:
+        st.subheader("📅 Cronograma de visitas")
+        st.info("Programación de visitas de seguimiento e implementación metodologica Last Planner System en obra")
+
+
 
 
 
