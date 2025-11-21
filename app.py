@@ -349,7 +349,7 @@ def main_app():
     # ======================================================
     # TAB 6
     # ======================================================
-    with tab5:
+    with tab6:
         st.subheader("🏢 Proyectos en grilla")
         st.info("Se refleja el estado de activación de la funcionalidad de grilla")
 
