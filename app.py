@@ -349,9 +349,43 @@ def main_app():
     # ======================================================
     # TAB 6
     # ======================================================
-    with tab6:
-        st.subheader("🏢 Proyectos en grilla")
-        st.info("Se refleja el estado de activación de la funcionalidad de grilla")
+    # ======================================================
+# TAB 6
+# ======================================================
+with tab6:
+    st.subheader("🏢 Proyectos en grilla")
+    st.info("Se refleja el estado de activación de la funcionalidad de grilla")
+    
+    try:
+        # Cargar el archivo EstadoGrilla desde GitHub
+        df_grilla = pd.read_excel("data/EstadoGrilla.xlsx")
+        
+        # Mostrar todos los campos en una tabla
+        st.dataframe(
+            df_grilla,
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        # Opcional: Mostrar estadísticas básicas
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total de Proyectos", len(df_grilla))
+        with col2:
+            if 'Estado' in df_grilla.columns:
+                activos = df_grilla[df_grilla['Estado'] == 'Activo'].shape[0] if 'Estado' in df_grilla.columns else "N/A"
+                st.metric("Proyectos Activos", activos)
+        with col3:
+            if 'FechaInicio' in df_grilla.columns:
+                fecha_mas_reciente = df_grilla['FechaInicio'].max() if 'FechaInicio' in df_grilla.columns else "N/A"
+                st.metric("Fecha Más Reciente", fecha_mas_reciente)
+                
+    except FileNotFoundError:
+        st.error("⚠️ No se encontró el archivo 'data/EstadoGrilla.xlsx'")
+        st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
+    except Exception as e:
+        st.error(f"Error al cargar el archivo: {e}")
 
         
 
