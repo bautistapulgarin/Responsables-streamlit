@@ -348,7 +348,7 @@ def main_app():
 
     # ======================================================
     # TAB 6
-       # ======================================================
+    # ======================================================
     # TAB 6
     # ======================================================
     with tab6:
@@ -359,11 +359,12 @@ def main_app():
             # Cargar el archivo EstadoGrilla desde GitHub
             df_grilla = pd.read_excel("data/EstadoGrilla.xlsx")
             
-            # Mostrar todos los campos en una tabla
+            # Mostrar todos los campos en una tabla SIN ETIQUETAS
             st.dataframe(
                 df_grilla,
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
+                column_config={col: None for col in df_grilla.columns}  # Esto oculta los headers de columnas
             )
             
             # Opcional: Mostrar estadísticas básicas
@@ -402,6 +403,9 @@ def main_app():
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
     
+    
+    
+
 
 
 
