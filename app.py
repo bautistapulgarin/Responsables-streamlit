@@ -371,18 +371,22 @@ def main_app():
             st.markdown("---")
             col1, col2, col3 = st.columns(3)
             with col1:
-                # Contar valores únicos del campo "Proyecto"
+                # Contar valores únicos del campo "Proyecto" - SIN DUPLICADOS
                 if 'Proyecto' in df_grilla.columns:
-                    total_proyectos_unicos = df_grilla['Proyecto'].nunique()
+                    # Eliminar duplicados y contar proyectos únicos
+                    proyectos_unicos = df_grilla['Proyecto'].drop_duplicates()
+                    total_proyectos_unicos = len(proyectos_unicos)
                     st.metric("Total de Proyectos", total_proyectos_unicos)
                 else:
                     st.metric("Total de Proyectos", "N/A")
                     
             with col2:
                 if 'Estado' in df_grilla.columns:
-                    # Contar proyectos únicos con estado "Activo"
+                    # Contar proyectos únicos con estado "Activo" - SIN DUPLICADOS
                     if 'Proyecto' in df_grilla.columns:
-                        proyectos_activos_unicos = df_grilla[df_grilla['Estado'] == 'Activo']['Proyecto'].nunique()
+                        # Primero eliminar duplicados de proyectos, manteniendo el primer registro
+                        df_sin_duplicados = df_grilla.drop_duplicates(subset=['Proyecto'], keep='first')
+                        proyectos_activos_unicos = df_sin_duplicados[df_sin_duplicados['Estado'] == 'Activo'].shape[0]
                         st.metric("Proyectos Activos", proyectos_activos_unicos)
                     else:
                         activos = df_grilla[df_grilla['Estado'] == 'Activo'].shape[0]
@@ -402,10 +406,8 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-            
+        
     
-    
-
 
 
 
