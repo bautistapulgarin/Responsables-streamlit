@@ -371,22 +371,37 @@ def main_app():
             st.markdown("---")
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Total de Proyectos", len(df_grilla))
+                # Contar proyectos únicos en lugar del total de filas
+                if 'Proyecto' in df_grilla.columns:
+                    total_proyectos = df_grilla['Proyecto'].nunique()
+                    st.metric("Total de Proyectos", total_proyectos)
+                else:
+                    st.metric("Total de Proyectos", "N/A")
+                    
             with col2:
                 if 'Estado' in df_grilla.columns:
-                    activos = df_grilla[df_grilla['Estado'] == 'Activo'].shape[0] if 'Estado' in df_grilla.columns else "N/A"
-                    st.metric("Proyectos Activos", activos)
+                    # Contar proyectos únicos con estado "Activo"
+                    if 'Proyecto' in df_grilla.columns:
+                        proyectos_activos = df_grilla[df_grilla['Estado'] == 'Activo']['Proyecto'].nunique()
+                        st.metric("Proyectos Activos", proyectos_activos)
+                    else:
+                        activos = df_grilla[df_grilla['Estado'] == 'Activo'].shape[0]
+                        st.metric("Proyectos Activos", activos)
+                else:
+                    st.metric("Proyectos Activos", "N/A")
+                    
             with col3:
                 if 'FechaInicio' in df_grilla.columns:
                     fecha_mas_reciente = df_grilla['FechaInicio'].max() if 'FechaInicio' in df_grilla.columns else "N/A"
                     st.metric("Fecha Más Reciente", fecha_mas_reciente)
+                else:
+                    st.metric("Otra Métrica", "N/A")
                     
         except FileNotFoundError:
             st.error("⚠️ No se encontró el archivo 'data/EstadoGrilla.xlsx'")
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-
         
 
 
