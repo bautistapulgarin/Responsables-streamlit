@@ -6,7 +6,16 @@ import json
 # ----------------------------
 # Configuración general
 # ----------------------------
-st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="wide")
+st.set_page_config(
+    page_title="Consulta de Responsables de Proyectos", 
+    layout="wide",
+    # Agregar estas opciones para ocultar elementos del menú
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
+)
 
 # ----------------------------
 # Pantalla de Login
@@ -42,6 +51,36 @@ def main_app():
     st.markdown(
         """
     <style>
+        /* Ocultar elementos del menú superior derecho */
+        .stDeployButton {
+            display: none;
+        }
+        #MainMenu {
+            visibility: hidden;
+        }
+        footer {
+            visibility: hidden;
+        }
+        header {
+            visibility: hidden;
+        }
+        
+        /* Ocultar específicamente los botones de deploy */
+        [data-testid="stToolbar"] {
+            display: none !important;
+        }
+        
+        /* Ocultar el menú de hamburguesa */
+        #stMainMenu {
+            display: none !important;
+        }
+        
+        /* Ocultar el botón de compartir */
+        [data-testid="baseButton-header"] {
+            display: none !important;
+        }
+        
+        /* Estilos existentes */
         body {
             background-color: white !important;
             color: black !important;
@@ -349,10 +388,6 @@ def main_app():
     # ======================================================
     # TAB 6
     # ======================================================
-    
-    # ======================================================
-    # TAB 6
-    # ======================================================
     with tab6:
         st.subheader("🏢 Proyectos en grilla")
         st.info("Se refleja el estado de activación de la funcionalidad de grilla")
@@ -583,21 +618,6 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-    
-    
-
-    
-    
-
-
-
-
-
-
-
-
-
-
 
 # ----------------------------
 # Ejecución principal
