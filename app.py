@@ -126,14 +126,15 @@ def main_app():
     with col_logo:
         st.image("loading.png", width=80)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         " 🧑🏿 Responsables por Proyecto", 
         " 📈 Reporte de Avances", 
         " 🕰️ Horario Reuniones LP",
         " 📜 Directorio Documental",
         " 📋 Formulario",
         " 🏢 Proyectos en grilla",
-        " 📅 Cronograma de visitas"
+        " 📅 Cronograma de visitas",
+        " ⏱️ Pull Planning"
     ])
     
     # ======================================================
@@ -732,6 +733,16 @@ def main_app():
     with tab7:
         st.subheader("📅 Cronograma de visitas")
         st.info("Programación de visitas de seguimiento e implementación metodologica Last Planner System en obra")
+
+
+    # ======================================================
+    # TAB 8
+    # ======================================================
+    with tab8:
+        st.subheader("⏱️ Pull Planning")
+        st.info("Pull planning en obra")
+
+
 
 
 
