@@ -12,7 +12,6 @@ st.set_page_config(page_title="Consulta de Responsables de Proyectos", layout="w
 # Pantalla de Login
 # ----------------------------
 def login_screen():
-    # Centramos contenido
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.image("loading.png", width=120)
@@ -22,23 +21,24 @@ def login_screen():
             unsafe_allow_html=True
         )
 
-        password = st.text_input("Contraseña", type="password")
+        # ---------- LOGIN CON FORMULARIO (AHORA ENTER FUNCIONA) ----------
+        with st.form("login_form"):
+            password = st.text_input("Contraseña", type="password")
+            submit = st.form_submit_button("Ingresar")
 
-        if st.button("Ingresar", use_container_width=True):
+        if submit:
             if password == st.secrets["password"]:
                 st.session_state["logged_in"] = True
-                st.success("✅ Acceso concedido")
+                st.success("Acceso concedido")
                 st.rerun()
             else:
-                st.error("❌ Contraseña incorrecta")
+                st.error("Contraseña incorrecta")
 
 # ----------------------------
 # App principal
 # ----------------------------
 def main_app():
-    # ----------------------------
-    # Estilos personalizados
-    # ----------------------------
+
     st.markdown(
         """
     <style>
@@ -55,16 +55,13 @@ def main_app():
             --blue-mid: #1f4e79;
             --blue-light: #eaf3fb;
         }
-        /* Fondo */
         .reportview-container, .main {
             background-color: var(--blue-light);
         }
-        /* Títulos */
         .css-1d391kg h1, .css-1d391kg h2 {
             color: var(--blue-dark);
             font-family: "Arial", sans-serif;
         }
-        /* Botones Streamlit */
         .stButton>button {
             background-color: var(--blue-mid);
             color: white;
@@ -76,7 +73,6 @@ def main_app():
         .stButton>button:hover {
             background-color: #163754;
         }
-        /* Select / DataFrame */
         .stSelectbox, .stDataFrame {
             border-radius: 10px;
         }
@@ -85,30 +81,19 @@ def main_app():
         unsafe_allow_html=True,
     )
 
-    # ----------------------------
-    # Encabezado con logo
-    # ----------------------------
     col_title, col_logo = st.columns([6, 1])
     with col_title:
         st.title("Consulta de Responsables de Proyectos")
     with col_logo:
         st.image("loading.png", width=80)
 
-    # ----------------------------
-    # Tabs
-    # ----------------------------
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    " 🧑🏿 Responsables por Proyecto", 
-    " 📈 Reporte de Avances", 
-    " 🕰️ Horario Reuniones LP",
-    " 📜 Directorio Documental",
-    " 📋 Formulario"
+        " 🧑🏿 Responsables por Proyecto", 
+        " 📈 Reporte de Avances", 
+        " 🕰️ Horario Reuniones LP",
+        " 📜 Directorio Documental",
+        " 📋 Formulario"
     ])
-
-
-
-
-
     
     # ======================================================
     # TAB 1: Responsables
@@ -236,7 +221,7 @@ def main_app():
             st.warning("No se encontraron resultados con los filtros seleccionados.")
 
     # ======================================================
-    # TAB 2: Reporte de Avances
+    # TAB 2
     # ======================================================
     with tab2:
         st.subheader("📈 Reporte de Avances")
@@ -249,32 +234,26 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
     # ======================================================
-    # TAB 3: Horario Reuniones LP
+    # TAB 3
     # ======================================================
     with tab3:
         st.subheader("🕒 Horario Reuniones LP")
-        st.info("Esta sección está en construcción. Aquí se mostrarán los horarios de reuniones Last Planner (LP).")
+        st.info("Esta sección está en construcción.")
 
         try:
             df_horario = pd.read_excel("data/HorarioReuniones.xlsx")
-    
-            # Mostrar el DataFrame tal cual
             st.dataframe(df_horario, use_container_width=True)
-    
         except FileNotFoundError:
             st.error("⚠️ No se encontró el archivo 'data/HorarioReuniones.xlsx'")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
 
-
-    
-        # ======================================================
-    # TAB 4: Directorio Documental
+    # ======================================================
+    # TAB 4
     # ======================================================
     with tab4:
         st.subheader("📂 Directorio Documental")
 
-        # --- Cargar Excel ---
         try:
             df_dir = pd.read_excel("data/Directorio.xlsx")
         except FileNotFoundError:
@@ -284,14 +263,12 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
             st.stop()
 
-        # --- Validar columnas esperadas ---
         columnas_esperadas = ["ID", "ID_Padre", "Nivel", "Nombre", "Tipo", "Descripción", "URL", "Orden"]
         faltantes = [c for c in columnas_esperadas if c not in df_dir.columns]
         if faltantes:
             st.error(f"El archivo no contiene las columnas requeridas: {faltantes}")
             st.stop()
 
-        # --- Función recursiva para construir el árbol ---
         def construir_arbol(df, id_padre=None):
             df_nivel = df[df["ID_Padre"].fillna("") == (id_padre or "")]
             df_nivel = df_nivel.sort_values("Orden", ascending=True)
@@ -310,81 +287,62 @@ def main_app():
 
         arbol = construir_arbol(df_dir)
 
-        # --- Render recursivo del árbol en Streamlit ---
         def mostrar_arbol(nodos):
             for nodo in nodos:
                 if nodo["tipo"].lower() == "carpeta":
                     with st.expander(f"📁 {nodo['nombre']}", expanded=False):
-                        # Mostrar descripción si existe
                         if nodo["descripcion"]:
                             st.markdown(f"📝 *{nodo['descripcion']}*")
-                        # Mostrar URL si existe
                         if nodo["url"]:
                             st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
-                        # Renderizar hijos
                         mostrar_arbol(nodo["hijos"])
                 else:
-                    # Si tiene URL, mostrar como enlace clickeable
                     if nodo["url"]:
                         st.markdown(f"- 📄 [{nodo['nombre']}]({nodo['url']})")
                     else:
                         st.markdown(f"- 📄 {nodo['nombre']}")
-                    # Mostrar descripción debajo si existe
                     if nodo["descripcion"]:
                         st.caption(nodo["descripcion"])
 
-        # --- Mostrar árbol ---
         if arbol:
             mostrar_arbol(arbol)
         else:
             st.info("No hay registros en el archivo Directorio.xlsx")
 
-
-
-    
     # ======================================================
-    # TAB 5: Formulario
+    # TAB 5
     # ======================================================
     with tab5:
         st.subheader("📋 Formulario de Registro")
         st.info("Completa el siguiente formulario para registrar la información en Google Sheets.")
-    
-        # --- Conexión con Google Sheets ---
+
         import gspread
         from google.oauth2.service_account import Credentials
         from datetime import datetime
-    
+
         creds_info = st.secrets["google_service_account"]
         creds = Credentials.from_service_account_info(
             creds_info,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
-    
+
         client = gspread.authorize(creds)
-        SHEET_ID = "1PvlOcqy-B7uOcPeKvaGO18cssIEnb6UIXeNBRuVQpiE"  # reemplaza con tu ID real
+        SHEET_ID = "1PvlOcqy-B7uOcPeKvaGO18cssIEnb6UIXeNBRuVQpiE"
         sheet = client.open_by_key(SHEET_ID).sheet1
-    
-        # --- Formulario ---
+
         with st.form("registro_form"):
             nombre = st.text_input("👤 Nombre completo")
             categoria = st.selectbox("📂 Categoría", ["Avance", "Reunión", "Observación", "Otro"])
             comentario = st.text_area("💬 Comentario")
             submitted = st.form_submit_button("✅ Enviar")
-    
+
             if submitted:
                 if nombre and comentario:
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    new_row = [timestamp, nombre, categoria, comentario]
-                    sheet.append_row(new_row)
+                    sheet.append_row([timestamp, nombre, categoria, comentario])
                     st.success("Registro enviado correctamente ✅")
                 else:
                     st.warning("Por favor completa al menos el nombre y el comentario.")
-    
-        
-        
-        
-
-
 
 
 # ----------------------------
