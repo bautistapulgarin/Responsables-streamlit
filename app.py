@@ -361,12 +361,42 @@ def main_app():
             # Cargar el archivo EstadoGrilla desde GitHub
             df_grilla = pd.read_excel("data/EstadoGrilla.xlsx")
             
-            # Mostrar todos los campos en una tabla
-            st.dataframe(
-                df_grilla,
-                use_container_width=True,
-                hide_index=True
-            )
+            # --- NUEVA LÓGICA PARA MOSTRAR TABLA DE PROYECTOS ÚNICOS ---
+            if 'Proyecto' in df_grilla.columns:
+                # 1. Obtener los proyectos únicos y ordenarlos
+                proyectos_unicos = df_grilla['Proyecto'].dropna().drop_duplicates().sort_values().reset_index(drop=True)
+                
+                # 2. Convertir la Serie a un DataFrame para mostrarlo como tabla
+                df_proyectos_unicos = pd.DataFrame(proyectos_unicos, columns=['Proyecto Único'])
+                
+                # 3. Usar st.columns para crear el layout con las dos tablas
+                col_unica, col_grilla = st.columns([1, 3]) # [1, 3] da más espacio a la tabla principal
+                
+                with col_unica:
+                    st.markdown("**Lista de Proyectos Únicos**")
+                    st.dataframe(
+                        df_proyectos_unicos,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+                
+                with col_grilla:
+                    st.markdown("**Datos Completos de la Grilla**")
+                    # Mostrar todos los campos en una tabla
+                    st.dataframe(
+                        df_grilla,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+            else:
+                st.warning("La columna 'Proyecto' no se encontró en el archivo.")
+                # Si no está la columna, se muestra la tabla completa normalmente
+                st.dataframe(
+                    df_grilla,
+                    use_container_width=True,
+                    hide_index=True
+                )
+            # ------------------------------------------------------------------
             
             # Opcional: Mostrar estadísticas básicas
             st.markdown("---")
@@ -407,10 +437,6 @@ def main_app():
             st.info("Por favor, asegúrate de que el archivo existe en la carpeta 'data' del repositorio")
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
-    
-    
-
-
 
 
 
