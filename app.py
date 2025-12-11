@@ -734,7 +734,6 @@ def main_app():
         st.subheader("📅 Cronograma de visitas")
         st.info("Programación de visitas de seguimiento e implementación metodologica Last Planner System en obra")
 
-
     # ======================================================
     # TAB 8: PULL PLANNING - DIAGRAMA DE GANTT
     # ======================================================
@@ -756,10 +755,22 @@ def main_app():
             
             for nombre_archivo in nombres_posibles:
                 try:
-                    df_gantt = pd.read_csv(nombre_archivo)
+                    # INTENTAR CON DIFERENTES SEPARADORES
+                    # Primero intentar con punto y coma (más común en tu caso)
+                    try:
+                        df_gantt = pd.read_csv(nombre_archivo, sep=';')
+                        st.info(f"✅ Archivo cargado con separador ';': `{nombre_archivo}`")
+                    except:
+                        # Si falla, intentar con coma
+                        df_gantt = pd.read_csv(nombre_archivo, sep=',')
+                        st.info(f"✅ Archivo cargado con separador ',': `{nombre_archivo}`")
+                    
                     archivo_encontrado = nombre_archivo
                     break
                 except FileNotFoundError:
+                    continue
+                except Exception as e:
+                    # Si ambos separadores fallan, continuar con el siguiente archivo
                     continue
             
             if df_gantt is None:
@@ -771,23 +782,110 @@ def main_app():
                 - `programacion.csv`
                 - `planning.csv`
                 """)
+                
+                # Mostrar archivos disponibles en data/
+                try:
+                    import os
+                    if os.path.exists("data/"):
+                        archivos = os.listdir("data/")
+                        if archivos:
+                            st.write("**Archivos encontrados en carpeta `data/`:**")
+                            for archivo in archivos:
+                                st.write(f"- `{archivo}`")
+                        else:
+                            st.write("La carpeta `data/` está vacía")
+                    else:
+                        st.write("No existe la carpeta `data/`")
+                except:
+                    pass
+                
                 st.stop()
             
-            st.success(f"✅ Archivo cargado: `{archivo_encontrado}`")
+            # Mostrar información del archivo cargado
+            st.success(f"✅ **Archivo cargado correctamente:** `{archivo_encontrado}`")
             
-            # Verificar que las columnas requeridas existan
+            # Mostrar vista previa de las primeras filas
+            with st.expander("👁️ Vista previa de los datos cargados", expanded=False):
+                st.dataframe(df_gantt.head(), use_container_width=True)
+                st.caption(f"📊 **Estructura:** {len(df_gantt)} filas × {len(df_gantt.columns)} columnas")
+            
+            # Verificar que las columnas requeridas existan (insensible a mayúsculas/minúsculas)
             columnas_requeridas = ['HC', 'Proyecto', 'Actividad', 'Inicio', 'Fin']
+            
+            # Normalizar nombres de columnas (quitar espacios y estandarizar)
+            df_gantt.columns = df_gantt.columns.str.strip()  # Eliminar espacios en blanco
+            
+            # Mapear columnas con nombres similares
+            mapeo_columnas = {
+                'hc': 'HC',
+                'Hc': 'HC',
+                'proyecto': 'Proyecto',
+                'PROYECTO': 'Proyecto',
+                'actividad': 'Actividad',
+                'ACTIVIDAD': 'Actividad',
+                'inicio': 'Inicio',
+                'INICIO': 'Inicio',
+                'Fecha Inicio': 'Inicio',
+                'Fecha_Inicio': 'Inicio',
+                'fin': 'Fin',
+                'FIN': 'Fin',
+                'Fecha Fin': 'Fin',
+                'Fecha_Fin': 'Fin',
+                'CodigoPlaneacion': 'CodigoPlaneacion',
+                'CódigoPlaneación': 'CodigoPlaneacion',
+                'codigo_planeacion': 'CodigoPlaneacion'
+            }
+            
+            # Renombrar columnas si es necesario
+            for col_original in df_gantt.columns:
+                if col_original in mapeo_columnas:
+                    df_gantt = df_gantt.rename(columns={col_original: mapeo_columnas[col_original]})
+                # También verificar sin importar mayúsculas/minúsculas
+                elif col_original.lower() in [k.lower() for k in mapeo_columnas.keys()]:
+                    for key in mapeo_columnas:
+                        if col_original.lower() == key.lower():
+                            df_gantt = df_gantt.rename(columns={col_original: mapeo_columnas[key]})
+                            break
+            
+            # Verificar columnas requeridas después del renombrado
             columnas_faltantes = [col for col in columnas_requeridas if col not in df_gantt.columns]
             
             if columnas_faltantes:
                 st.error(f"❌ Faltan columnas requeridas: {', '.join(columnas_faltantes)}")
-                st.info(f"📋 Columnas encontradas: {', '.join(df_gantt.columns.tolist())}")
+                st.info(f"📋 **Columnas encontradas en el archivo:**")
+                
+                # Mostrar columnas actuales
+                col_info = ", ".join([f"`{col}`" for col in df_gantt.columns.tolist()])
+                st.write(col_info)
+                
+                # Mostrar algunas filas para diagnóstico
+                with st.expander("🔍 Ver primeras filas para diagnóstico"):
+                    st.dataframe(df_gantt.head(), use_container_width=True)
+                
                 st.stop()
             
             # ========== PREPROCESAMIENTO DE DATOS ==========
-            # Convertir fechas
-            df_gantt['Inicio'] = pd.to_datetime(df_gantt['Inicio'], errors='coerce')
-            df_gantt['Fin'] = pd.to_datetime(df_gantt['Fin'], errors='coerce')
+            # Convertir fechas - manejar diferentes formatos
+            date_formats = ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%d.%m.%Y', '%m/%d/%Y']
+            
+            def parse_date(date_str):
+                if pd.isna(date_str):
+                    return pd.NaT
+                
+                for fmt in date_formats:
+                    try:
+                        return pd.to_datetime(date_str, format=fmt)
+                    except:
+                        continue
+                
+                # Si ningún formato funciona, intentar con pandas nativo
+                try:
+                    return pd.to_datetime(date_str, errors='coerce')
+                except:
+                    return pd.NaT
+            
+            df_gantt['Inicio'] = df_gantt['Inicio'].apply(parse_date)
+            df_gantt['Fin'] = df_gantt['Fin'].apply(parse_date)
             
             # Eliminar filas con fechas inválidas
             filas_originales = len(df_gantt)
@@ -798,24 +896,28 @@ def main_app():
                 st.warning(f"⚠️ Se eliminaron {filas_originales - filas_validas} filas con fechas inválidas")
             
             # Crear columna para display en Gantt
-            df_gantt['Task_Display'] = df_gantt['HC'] + " - " + df_gantt['Actividad']
+            df_gantt['Task_Display'] = df_gantt['HC'].astype(str) + " - " + df_gantt['Actividad'].astype(str)
             
-            # Calcular duración
+            # Calcular duración en días
             df_gantt['Duracion_Dias'] = (df_gantt['Fin'] - df_gantt['Inicio']).dt.days + 1
             df_gantt['Duracion_Dias'] = df_gantt['Duracion_Dias'].clip(lower=1)  # Mínimo 1 día
             
             # ========== PANEL DE INFORMACIÓN ==========
-            with st.expander("📊 Información del dataset", expanded=False):
+            st.info(f"📊 **Datos cargados correctamente:** {len(df_gantt)} actividades de {df_gantt['HC'].nunique()} proyectos (HC)")
+            
+            with st.expander("📈 Estadísticas del dataset", expanded=False):
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Actividades", len(df_gantt))
                 with col2:
                     st.metric("Proyectos (HC)", df_gantt['HC'].nunique())
                 with col3:
-                    st.metric("Rango de fechas", 
-                             f"{df_gantt['Inicio'].min().strftime('%d/%m/%Y')} - {df_gantt['Fin'].max().strftime('%d/%m/%Y')}")
+                    fecha_min = df_gantt['Inicio'].min().strftime('%d/%m/%Y')
+                    fecha_max = df_gantt['Fin'].max().strftime('%d/%m/%Y')
+                    st.metric("Período total", f"{fecha_min} a {fecha_max}")
                 with col4:
-                    st.metric("Días promedio/act", f"{df_gantt['Duracion_Dias'].mean():.1f}")
+                    dias_promedio = df_gantt['Duracion_Dias'].mean()
+                    st.metric("Duración promedio", f"{dias_promedio:.1f} días")
             
             # ========== BARRA LATERAL DE FILTROS ==========
             st.sidebar.markdown("---")
@@ -825,18 +927,18 @@ def main_app():
             hc_options = sorted(df_gantt['HC'].dropna().unique().tolist())
             
             # Búsqueda rápida de HC
-            buscar_hc = st.sidebar.text_input("🔎 Buscar HC:", placeholder="Ej: PROY-001")
+            buscar_hc = st.sidebar.text_input("🔎 Buscar HC:", placeholder="Ej: PROY-001 o parte del código")
             
             # Filtrar opciones basadas en búsqueda
             if buscar_hc:
-                hc_filtrados = [hc for hc in hc_options if buscar_hc.lower() in str(hc).lower()]
+                hc_filtrados = [str(hc) for hc in hc_options if buscar_hc.lower() in str(hc).lower()]
             else:
-                hc_filtrados = hc_options
+                hc_filtrados = [str(hc) for hc in hc_options]
             
             hc_seleccionados = st.sidebar.multiselect(
                 "🏷️ Seleccionar HC (Proyectos):",
                 options=hc_filtrados,
-                default=hc_filtrados[:min(3, len(hc_filtrados))],
+                default=hc_filtrados[:min(5, len(hc_filtrados))],
                 help="HC es el identificador único de cada proyecto"
             )
             
@@ -844,7 +946,11 @@ def main_app():
             if 'Proyecto' in df_gantt.columns:
                 # Obtener proyectos únicos de los HC seleccionados
                 if hc_seleccionados:
-                    proyectos_disponibles = sorted(df_gantt[df_gantt['HC'].isin(hc_seleccionados)]['Proyecto'].dropna().unique().tolist())
+                    # Convertir HC seleccionados al tipo de dato original si es necesario
+                    proyectos_disponibles = sorted(
+                        df_gantt[df_gantt['HC'].astype(str).isin([str(hc) for hc in hc_seleccionados])]
+                        ['Proyecto'].dropna().unique().tolist()
+                    )
                 else:
                     proyectos_disponibles = sorted(df_gantt['Proyecto'].dropna().unique().tolist())
                 
@@ -853,22 +959,24 @@ def main_app():
                     options=proyectos_disponibles,
                     default=[]
                 )
-            else:
-                proyecto_seleccionados = []
             
             # 3. FILTRO POR CÓDIGO DE PLANEACIÓN (si existe)
             codigo_seleccionados = []
             if 'CodigoPlaneacion' in df_gantt.columns:
                 if hc_seleccionados:
-                    codigos_disponibles = sorted(df_gantt[df_gantt['HC'].isin(hc_seleccionados)]['CodigoPlaneacion'].dropna().unique().tolist())
+                    codigos_disponibles = sorted(
+                        df_gantt[df_gantt['HC'].astype(str).isin([str(hc) for hc in hc_seleccionados])]
+                        ['CodigoPlaneacion'].dropna().unique().tolist()
+                    )
                 else:
                     codigos_disponibles = sorted(df_gantt['CodigoPlaneacion'].dropna().unique().tolist())
                 
-                codigo_seleccionados = st.sidebar.multiselect(
-                    "📐 Seleccionar Código de Planeación:",
-                    options=codigos_disponibles,
-                    default=[]
-                )
+                if codigos_disponibles:
+                    codigo_seleccionados = st.sidebar.multiselect(
+                        "📐 Seleccionar Código de Planeación:",
+                        options=codigos_disponibles,
+                        default=[]
+                    )
             
             # 4. FILTRO POR RANGO DE FECHAS
             st.sidebar.markdown("---")
@@ -876,8 +984,10 @@ def main_app():
             
             # Calcular fechas mínimas y máximas basadas en HC seleccionados
             if hc_seleccionados:
-                fecha_min = df_gantt[df_gantt['HC'].isin(hc_seleccionados)]['Inicio'].min()
-                fecha_max = df_gantt[df_gantt['HC'].isin(hc_seleccionados)]['Fin'].max()
+                # Filtrar df por HC seleccionados
+                df_temp = df_gantt[df_gantt['HC'].astype(str).isin([str(hc) for hc in hc_seleccionados])]
+                fecha_min = df_temp['Inicio'].min()
+                fecha_max = df_temp['Fin'].max()
             else:
                 fecha_min = df_gantt['Inicio'].min()
                 fecha_max = df_gantt['Fin'].max()
@@ -910,24 +1020,20 @@ def main_app():
             
             # 6. BOTONES DE ACCIÓN
             st.sidebar.markdown("---")
-            col_reset, col_expand = st.sidebar.columns(2)
-            with col_reset:
-                if st.button("🔄 Limpiar filtros", use_container_width=True):
-                    st.rerun()
-            with col_expand:
-                expandir_todo = st.button("📊 Expandir todo", use_container_width=True)
+            if st.sidebar.button("🔄 Limpiar todos los filtros", use_container_width=True):
+                st.rerun()
             
             # ========== APLICAR FILTROS ==========
             df_filtrado = df_gantt.copy()
             filtros_aplicados = []
             
-            # Aplicar filtro de HC
+            # Aplicar filtro de HC (convertir a string para comparación)
             if hc_seleccionados:
-                df_filtrado = df_filtrado[df_filtrado['HC'].isin(hc_seleccionados)]
+                df_filtrado = df_filtrado[df_filtrado['HC'].astype(str).isin([str(hc) for hc in hc_seleccionados])]
                 filtros_aplicados.append(f"HC: {len(hc_seleccionados)}")
             
             # Aplicar filtro de nombre de proyecto
-            if proyecto_seleccionados:
+            if proyecto_seleccionados and 'Proyecto' in df_filtrado.columns:
                 df_filtrado = df_filtrado[df_filtrado['Proyecto'].isin(proyecto_seleccionados)]
                 filtros_aplicados.append(f"Proyectos: {len(proyecto_seleccionados)}")
             
@@ -955,16 +1061,17 @@ def main_app():
             
             # ========== MOSTRAR RESUMEN DE FILTROS ==========
             if filtros_aplicados:
-                st.info(f"**Filtros activos:** {' | '.join(filtros_aplicados)} | **Actividades mostradas:** {len(df_filtrado)}")
+                st.success(f"✅ **Filtros aplicados:** {' | '.join(filtros_aplicados)}")
+            
+            st.markdown(f"### 📋 Resultados: {len(df_filtrado)} actividades")
             
             # ========== VISUALIZACIÓN PRINCIPAL ==========
             if not df_filtrado.empty:
                 # Crear pestañas para diferentes vistas
-                vista_gantt, vista_tabla, vista_resumen, vista_exportar = st.tabs([
+                vista_gantt, vista_tabla, vista_resumen = st.tabs([
                     "📊 Diagrama Gantt", 
                     "📋 Tabla de Datos", 
-                    "📈 Resumen por HC",
-                    "📤 Exportar"
+                    "📈 Resumen por HC"
                 ])
                 
                 with vista_gantt:
@@ -980,42 +1087,38 @@ def main_app():
                         # Asignar color por HC
                         hc_unicos = df_filtrado['HC'].dropna().unique()
                         colors = px.colors.qualitative.Set3
-                        color_map = {}
-                        
-                        for i, hc in enumerate(hc_unicos):
-                            color_map[hc] = colors[i % len(colors)]
                         
                         for _, row in df_filtrado.iterrows():
-                            # Información para tooltip
-                            tooltip_info = []
+                            # Crear tooltip informativo
+                            tooltip_lines = []
                             
                             if pd.notna(row.get('HC')):
-                                tooltip_info.append(f"<b>HC:</b> {row['HC']}")
+                                tooltip_lines.append(f"<b>HC:</b> {row['HC']}")
                             
                             if pd.notna(row.get('Proyecto')):
-                                tooltip_info.append(f"<b>Proyecto:</b> {row['Proyecto']}")
+                                tooltip_lines.append(f"<b>Proyecto:</b> {row['Proyecto']}")
                             
                             if pd.notna(row.get('CodigoPlaneacion')):
-                                tooltip_info.append(f"<b>Código:</b> {row['CodigoPlaneacion']}")
+                                tooltip_lines.append(f"<b>Código:</b> {row['CodigoPlaneacion']}")
                             
-                            tooltip_info.append(f"<b>Duración:</b> {row['Duracion_Dias']} días")
+                            tooltip_lines.append(f"<b>Duración:</b> {int(row['Duracion_Dias'])} días")
                             
                             actividad = {
                                 'Task': row['Task_Display'],
                                 'Start': row['Inicio'],
                                 'Finish': row['Fin'],
-                                'Resource': row['HC'],
-                                'Color': color_map.get(row['HC'], '#808080'),
-                                'Complete': 100,  # Para visualización de progreso
-                                'Description': '<br>'.join(tooltip_info)
+                                'Resource': str(row['HC'])
                             }
+                            
+                            # Agregar tooltip como campo adicional
+                            if tooltip_lines:
+                                actividad['Description'] = '<br>'.join(tooltip_lines)
                             
                             gantt_data.append(actividad)
                         
                         # Crear figura Gantt
                         fig = ff.create_gantt(
                             gantt_data,
-                            colors=[act['Color'] for act in gantt_data],
                             index_col='Resource',
                             show_colorbar=True,
                             group_tasks=True,
@@ -1027,85 +1130,59 @@ def main_app():
                         
                         # Personalizar layout
                         fig.update_layout(
-                            height=max(600, len(gantt_data) * 30),
-                            width=1000,
+                            height=max(500, len(gantt_data) * 25),
                             xaxis_title="Fecha",
-                            yaxis_title="Actividades (HC - Actividad)",
+                            yaxis_title="Actividades",
                             showlegend=True,
                             hovermode='closest'
-                        )
-                        
-                        # Formatear fechas en hover
-                        fig.update_traces(
-                            hovertemplate="<b>%{customdata[0]}</b><br>" +
-                                         "Inicio: %{x|%d/%m/%Y}<br>" +
-                                         "Fin: %{x2|%d/%m/%Y}<br>" +
-                                         "%{customdata[1]}" +
-                                         "<extra></extra>",
-                            customdata=[[act['Task'], act['Description']] for act in gantt_data]
                         )
                         
                         # Mostrar gráfico
                         st.plotly_chart(fig, use_container_width=True)
                         
-                        # Leyenda interactiva
-                        with st.expander("🎨 Leyenda de colores por HC", expanded=False):
-                            for hc, color in list(color_map.items())[:20]:  # Mostrar primeros 20
-                                st.markdown(f"<span style='color:{color};font-weight:bold'>■</span> {hc}", 
-                                          unsafe_allow_html=True)
-                            
-                            if len(color_map) > 20:
-                                st.caption(f"... y {len(color_map) - 20} HC más")
+                        # Información adicional
+                        col_info1, col_info2 = st.columns(2)
+                        with col_info1:
+                            st.caption(f"🎨 **Colores por HC:** {len(hc_unicos)} proyectos diferentes")
+                        with col_info2:
+                            if len(gantt_data) > 50:
+                                st.caption("📏 **Nota:** Para mejor visualización con muchos datos, use los filtros")
                         
                     except Exception as e:
                         st.error(f"Error al crear el diagrama de Gantt: {e}")
                         st.info("Mostrando vista de tabla como alternativa")
-                        st.dataframe(df_filtrado, use_container_width=True)
+                        st.dataframe(df_filtrado[['HC', 'Proyecto', 'Actividad', 'Inicio', 'Fin']].head(20), 
+                                   use_container_width=True)
                 
                 with vista_tabla:
                     st.markdown("### 📋 Datos detallados del cronograma")
                     
-                    # Estadísticas rápidas
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("Actividades", len(df_filtrado))
-                    with col2:
-                        st.metric("Proyectos (HC)", df_filtrado['HC'].nunique())
-                    with col3:
-                        duracion_total = df_filtrado['Duracion_Dias'].sum()
-                        st.metric("Días totales", duracion_total)
-                    with col4:
-                        fecha_min = df_filtrado['Inicio'].min().strftime('%d/%m')
-                        fecha_max = df_filtrado['Fin'].max().strftime('%d/%m')
-                        st.metric("Período", f"{fecha_min} - {fecha_max}")
-                    
                     # Mostrar tabla con columnas ordenadas
-                    columnas_orden = ['HC', 'Proyecto', 'Actividad', 'CodigoPlaneacion', 
-                                    'Inicio', 'Fin', 'Duracion_Dias']
+                    columnas_mostrar = ['HC', 'Proyecto', 'Actividad', 'Inicio', 'Fin', 'Duracion_Dias']
+                    if 'CodigoPlaneacion' in df_filtrado.columns:
+                        columnas_mostrar.insert(3, 'CodigoPlaneacion')
                     
-                    # Filtrar columnas existentes
-                    columnas_existentes = [col for col in columnas_orden if col in df_filtrado.columns]
-                    
-                    # Agregar columnas adicionales
-                    columnas_adicionales = [col for col in df_filtrado.columns 
-                                          if col not in columnas_existentes and col != 'Task_Display']
-                    
-                    columnas_finales = columnas_existentes + columnas_adicionales
-                    
-                    # Mostrar tabla
                     st.dataframe(
-                        df_filtrado[columnas_finales],
+                        df_filtrado[columnas_mostrar],
                         use_container_width=True,
                         hide_index=True,
                         column_config={
                             'HC': st.column_config.TextColumn("HC", width="small"),
                             'Proyecto': st.column_config.TextColumn("Proyecto", width="medium"),
                             'Actividad': st.column_config.TextColumn("Actividad", width="large"),
-                            'CodigoPlaneacion': st.column_config.TextColumn("Código", width="small"),
                             'Inicio': st.column_config.DateColumn("Inicio", format="DD/MM/YYYY"),
                             'Fin': st.column_config.DateColumn("Fin", format="DD/MM/YYYY"),
                             'Duracion_Dias': st.column_config.NumberColumn("Días", format="%d")
                         }
+                    )
+                    
+                    # Botón para descargar
+                    csv = df_filtrado.to_csv(index=False, sep=';').encode('utf-8')
+                    st.download_button(
+                        label="📥 Descargar datos filtrados (CSV)",
+                        data=csv,
+                        file_name=f"pull_planning_filtrado_{pd.Timestamp.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv"
                     )
                 
                 with vista_resumen:
@@ -1128,171 +1205,60 @@ def main_app():
                     # Calcular duración del proyecto
                     resumen_hc['Duracion_Proyecto'] = (resumen_hc['Fin'] - resumen_hc['Inicio']).dt.days + 1
                     
-                    # Calcular densidad (actividades por día)
-                    resumen_hc['Actividades_x_Dia'] = resumen_hc['Total_Actividades'] / resumen_hc['Duracion_Proyecto']
-                    
-                    # Ordenar por HC
-                    resumen_hc = resumen_hc.sort_values('HC')
-                    
                     # Mostrar tabla resumen
                     st.dataframe(
                         resumen_hc,
                         use_container_width=True,
-                        hide_index=True,
-                        column_config={
-                            'HC': "HC",
-                            'Proyecto': "Proyecto",
-                            'Total_Actividades': "Actividades",
-                            'Inicio': st.column_config.DateColumn("Inicio", format="DD/MM/YYYY"),
-                            'Fin': st.column_config.DateColumn("Fin", format="DD/MM/YYYY"),
-                            'Duracion_Proyecto': "Días Proyecto",
-                            'Dias_Totales': "Días Actividades",
-                            'Actividades_x_Dia': st.column_config.NumberColumn("Act/Día", format="%.2f")
-                        }
+                        hide_index=True
                     )
-                    
-                    # Gráficos de resumen
-                    col_grafico1, col_grafico2 = st.columns(2)
-                    
-                    with col_grafico1:
-                        try:
-                            import plotly.express as px
-                            
-                            fig_actividades = px.bar(
-                                resumen_hc,
-                                x='HC',
-                                y='Total_Actividades',
-                                title='Actividades por HC',
-                                color='HC',
-                                text='Total_Actividades',
-                                hover_data=['Proyecto', 'Duracion_Proyecto']
-                            )
-                            fig_actividades.update_traces(textposition='outside')
-                            fig_actividades.update_layout(showlegend=False)
-                            st.plotly_chart(fig_actividades, use_container_width=True)
-                        except:
-                            pass
-                    
-                    with col_grafico2:
-                        try:
-                            fig_timeline = px.timeline(
-                                resumen_hc,
-                                x_start="Inicio",
-                                x_end="Fin",
-                                y="HC",
-                                color="HC",
-                                title="Timeline por HC",
-                                hover_data=['Proyecto', 'Total_Actividades']
-                            )
-                            fig_timeline.update_yaxes(autorange="reversed")
-                            fig_timeline.update_layout(showlegend=False, height=400)
-                            st.plotly_chart(fig_timeline, use_container_width=True)
-                        except:
-                            pass
-                
-                with vista_exportar:
-                    st.markdown("### 📤 Exportar datos")
-                    
-                    col_export1, col_export2 = st.columns(2)
-                    
-                    with col_export1:
-                        st.markdown("#### Descargar datos filtrados")
-                        
-                        # Opción 1: CSV
-                        csv_data = df_filtrado.to_csv(index=False).encode('utf-8')
-                        st.download_button(
-                            label="📥 Descargar como CSV",
-                            data=csv_data,
-                            file_name=f"pull_planning_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
-                        
-                        # Opción 2: Excel
-                        excel_buffer = BytesIO()
-                        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-                            df_filtrado.to_excel(writer, sheet_name='Pull_Planning', index=False)
-                            # Agregar hoja de resumen
-                            resumen_hc.to_excel(writer, sheet_name='Resumen_HC', index=False)
-                        
-                        excel_data = excel_buffer.getvalue()
-                        
-                        st.download_button(
-                            label="📊 Descargar como Excel",
-                            data=excel_data,
-                            file_name=f"pull_planning_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
-                        )
-                    
-                    with col_export2:
-                        st.markdown("#### Configuración de exportación")
-                        
-                        # Seleccionar columnas para exportar
-                        columnas_export = st.multiselect(
-                            "Seleccionar columnas para exportar:",
-                            options=df_filtrado.columns.tolist(),
-                            default=['HC', 'Proyecto', 'Actividad', 'Inicio', 'Fin', 'Duracion_Dias']
-                        )
-                        
-                        if columnas_export:
-                            df_export = df_filtrado[columnas_export]
-                            
-                            # Vista previa
-                            with st.expander("👁️ Vista previa de datos a exportar"):
-                                st.dataframe(df_export.head(10), use_container_width=True)
-                            
-                            # Exportar configuración personalizada
-                            export_custom = df_export.to_csv(index=False).encode('utf-8')
-                            
-                            st.download_button(
-                                label="📋 Descargar columnas seleccionadas",
-                                data=export_custom,
-                                file_name=f"pull_planning_personalizado_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.csv",
-                                mime="text/csv",
-                                use_container_width=True,
-                                key="custom_export"
-                            )
             
             else:
                 st.warning("⚠️ No hay actividades que coincidan con los filtros seleccionados")
-                
-                # Mostrar sugerencias
-                with st.expander("💡 Sugerencias para ajustar filtros"):
-                    st.markdown("""
-                    1. **Reduce el número de HC seleccionados**
-                    2. **Amplía el rango de fechas**
-                    3. **Aumenta el rango de duración de actividades**
-                    4. **Limpia los filtros** usando el botón en la barra lateral
-                    """)
-                
-                # Mostrar vista previa de datos originales
-                with st.expander("📁 Ver datos originales disponibles"):
-                    st.dataframe(df_gantt.head(20), use_container_width=True)
-                    st.caption(f"Total de {len(df_gantt)} actividades disponibles")
+                st.info("💡 Prueba a ampliar los filtros o seleccionar diferentes HC/proyectos")
         
         except Exception as e:
             st.error(f"❌ Error al procesar los datos: {str(e)}")
             
-            # Información de diagnóstico
-            with st.expander("🔧 Información de diagnóstico"):
-                st.code(f"Error: {str(e)}", language='python')
+            # Información de diagnóstico detallada
+            with st.expander("🔧 Información de diagnóstico detallada"):
+                st.write("**Error completo:**")
+                st.code(str(e), language='python')
                 
-                # Listar archivos en data/
+                # Intentar cargar el archivo manualmente para diagnóstico
+                st.write("**Intentando diagnóstico del archivo:**")
+                
                 try:
+                    # Listar archivos en data/
                     import os
-                    archivos_data = os.listdir("data/") if os.path.exists("data/") else []
-                    st.write("Archivos en carpeta data/:")
-                    for archivo in archivos_data:
-                        st.write(f"- {archivo}")
-                except:
-                    st.write("No se pudo listar archivos en data/")
-
-
-
-
-
-
+                    archivos_data = []
+                    if os.path.exists("data/"):
+                        archivos_data = os.listdir("data/")
+                    
+                    if archivos_data:
+                        st.write("**Archivos en carpeta `data/`:**")
+                        for archivo in archivos_data:
+                            if '.csv' in archivo.lower():
+                                st.write(f"- `{archivo}` (CSV)")
+                            else:
+                                st.write(f"- `{archivo}`")
+                        
+                        # Intentar leer el archivo línea por línea
+                        st.write("**Contenido de las primeras líneas de archivos CSV:**")
+                        for archivo in archivos_data:
+                            if '.csv' in archivo.lower():
+                                try:
+                                    with open(f"data/{archivo}", 'r', encoding='utf-8') as f:
+                                        lineas = [f.readline() for _ in range(3)]
+                                    st.write(f"**{archivo}:**")
+                                    for i, linea in enumerate(lineas):
+                                        st.write(f"  Línea {i+1}: `{linea.strip()}`")
+                                except Exception as file_error:
+                                    st.write(f"**{archivo}:** Error al leer: {file_error}")
+                    else:
+                        st.write("No se encontraron archivos en la carpeta `data/`")
+                        
+                except Exception as diag_error:
+                    st.write(f"Error en diagnóstico: {diag_error}")
 
 
 
