@@ -759,11 +759,11 @@ def main_app():
                     # Primero intentar con punto y coma (más común en tu caso)
                     try:
                         df_gantt = pd.read_csv(nombre_archivo, sep=';')
-                        st.info(f"✅ Archivo cargado con separador ';': `{nombre_archivo}`")
+                        
                     except:
                         # Si falla, intentar con coma
                         df_gantt = pd.read_csv(nombre_archivo, sep=',')
-                        st.info(f"✅ Archivo cargado con separador ',': `{nombre_archivo}`")
+                        
                     
                     archivo_encontrado = nombre_archivo
                     break
@@ -801,8 +801,7 @@ def main_app():
                 
                 st.stop()
             
-            # Mostrar información del archivo cargado
-            st.success(f"✅ **Archivo cargado correctamente:** `{archivo_encontrado}`")
+            
             
             # Mostrar vista previa de las primeras filas
             with st.expander("👁️ Vista previa de los datos cargados", expanded=False):
