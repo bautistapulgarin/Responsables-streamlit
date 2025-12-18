@@ -126,11 +126,12 @@ def main_app():
     with col_logo:
         st.image("loading.png", width=80)
 
+    # MODIFICACIÓN: Cambiar el orden para que "Directorio Documental" sea la primera pestaña
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        " 📜 Directorio Documental",  # AHORA ES LA PRIMERA PESTAÑA
         " 🧑🏿 Responsables por Proyecto", 
         " 📈 Reporte de Avances", 
         " 🕰️ Horario Reuniones LP",
-        " 📜 Directorio Documental",
         " 📋 Formulario",
         " 🏢 Proyectos en grilla",
         " 📅 Cronograma de visitas",
@@ -138,9 +139,70 @@ def main_app():
     ])
     
     # ======================================================
-    # TAB 1: Responsables
+    # TAB 1: Directorio Documental (AHORA ES LA PRIMERA)
     # ======================================================
     with tab1:
+        st.subheader("📂 Directorio Documental")
+
+        try:
+            df_dir = pd.read_excel("data/Directorio.xlsx")
+        except FileNotFoundError:
+            st.error("⚠️ No se encontró el archivo 'data/Directorio.xlsx'")
+            st.stop()
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
+            st.stop()
+
+        columnas_esperadas = ["ID", "ID_Padre", "Nivel", "Nombre", "Tipo", "Descripción", "URL", "Orden"]
+        faltantes = [c for c in columnas_esperadas if c not in df_dir.columns]
+        if faltantes:
+            st.error(f"El archivo no contiene las columnas requeridas: {faltantes}")
+            st.stop()
+
+        def construir_arbol(df, id_padre=None):
+            df_nivel = df[df["ID_Padre"].fillna("") == (id_padre or "")]
+            df_nivel = df_nivel.sort_values("Orden", ascending=True)
+            arbol = []
+            for _, fila in df_nivel.iterrows():
+                hijos = construir_arbol(df, fila["ID"])
+                arbol.append({
+                    "id": fila["ID"],
+                    "nombre": fila["Nombre"],
+                    "tipo": str(fila["Tipo"]).strip() if pd.notna(fila["Tipo"]) else "Archivo",
+                    "url": str(fila["URL"]).strip() if pd.notna(fila["URL"]) else "",
+                    "descripcion": str(fila["Descripción"]).strip() if pd.notna(fila["Descripción"]) else "",
+                    "hijos": hijos
+                })
+            return arbol
+
+        arbol = construir_arbol(df_dir)
+
+        def mostrar_arbol(nodos):
+            for nodo in nodos:
+                if nodo["tipo"].lower() == "carpeta":
+                    with st.expander(f"📁 {nodo['nombre']}", expanded=False):
+                        if nodo["descripcion"]:
+                            st.markdown(f"📝 *{nodo['descripcion']}*")
+                        if nodo["url"]:
+                            st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
+                        mostrar_arbol(nodo["hijos"])
+                else:
+                    if nodo["url"]:
+                        st.markdown(f"- 📄 [{nodo['nombre']}]({nodo['url']})")
+                    else:
+                        st.markdown(f"- 📄 {nodo['nombre']}")
+                    if nodo["descripcion"]:
+                        st.caption(nodo["descripcion"])
+
+        if arbol:
+            mostrar_arbol(arbol)
+        else:
+            st.info("No hay registros en el archivo Directorio.xlsx")
+
+    # ======================================================
+    # TAB 2: Responsables por Proyecto (AHORA ES LA SEGUNDA)
+    # ======================================================
+    with tab2:
         def load_data():
             return pd.read_excel("data/ResponsablesPorProyecto.xlsx")
 
@@ -263,9 +325,9 @@ def main_app():
             st.warning("No se encontraron resultados con los filtros seleccionados.")
 
     # ======================================================
-    # TAB 2
+    # TAB 3: Reporte de Avances (AHORA ES LA TERCERA)
     # ======================================================
-    with tab2:
+    with tab3:
         st.subheader("📈 Reporte de Avances")
         try:
             df_avances = pd.read_excel("data/ReporteAvances.xlsx")
@@ -276,9 +338,9 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
     # ======================================================
-    # TAB 3
+    # TAB 4: Horario Reuniones LP (AHORA ES LA CUARTA)
     # ======================================================
-    with tab3:
+    with tab4:
         st.subheader("🕒 Horario Reuniones LP")
         st.info("Esta sección está en construcción.")
 
@@ -291,68 +353,7 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
     # ======================================================
-    # TAB 4
-    # ======================================================
-    with tab4:
-        st.subheader("📂 Directorio Documental")
-
-        try:
-            df_dir = pd.read_excel("data/Directorio.xlsx")
-        except FileNotFoundError:
-            st.error("⚠️ No se encontró el archivo 'data/Directorio.xlsx'")
-            st.stop()
-        except Exception as e:
-            st.error(f"Error al cargar el archivo: {e}")
-            st.stop()
-
-        columnas_esperadas = ["ID", "ID_Padre", "Nivel", "Nombre", "Tipo", "Descripción", "URL", "Orden"]
-        faltantes = [c for c in columnas_esperadas if c not in df_dir.columns]
-        if faltantes:
-            st.error(f"El archivo no contiene las columnas requeridas: {faltantes}")
-            st.stop()
-
-        def construir_arbol(df, id_padre=None):
-            df_nivel = df[df["ID_Padre"].fillna("") == (id_padre or "")]
-            df_nivel = df_nivel.sort_values("Orden", ascending=True)
-            arbol = []
-            for _, fila in df_nivel.iterrows():
-                hijos = construir_arbol(df, fila["ID"])
-                arbol.append({
-                    "id": fila["ID"],
-                    "nombre": fila["Nombre"],
-                    "tipo": str(fila["Tipo"]).strip() if pd.notna(fila["Tipo"]) else "Archivo",
-                    "url": str(fila["URL"]).strip() if pd.notna(fila["URL"]) else "",
-                    "descripcion": str(fila["Descripción"]).strip() if pd.notna(fila["Descripción"]) else "",
-                    "hijos": hijos
-                })
-            return arbol
-
-        arbol = construir_arbol(df_dir)
-
-        def mostrar_arbol(nodos):
-            for nodo in nodos:
-                if nodo["tipo"].lower() == "carpeta":
-                    with st.expander(f"📁 {nodo['nombre']}", expanded=False):
-                        if nodo["descripcion"]:
-                            st.markdown(f"📝 *{nodo['descripcion']}*")
-                        if nodo["url"]:
-                            st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
-                        mostrar_arbol(nodo["hijos"])
-                else:
-                    if nodo["url"]:
-                        st.markdown(f"- 📄 [{nodo['nombre']}]({nodo['url']})")
-                    else:
-                        st.markdown(f"- 📄 {nodo['nombre']}")
-                    if nodo["descripcion"]:
-                        st.caption(nodo["descripcion"])
-
-        if arbol:
-            mostrar_arbol(arbol)
-        else:
-            st.info("No hay registros en el archivo Directorio.xlsx")
-
-    # ======================================================
-    # TAB 5
+    # TAB 5: Formulario (AHORA ES LA QUINTA)
     # ======================================================
     with tab5:
         st.subheader("📋 Formulario de Registro")
@@ -386,12 +387,8 @@ def main_app():
                 else:
                     st.warning("Por favor completa al menos el nombre y el comentario.")
 
-
     # ======================================================
-    # TAB 6
-    # ======================================================
-    # ======================================================
-    # TAB 6
+    # TAB 6: Proyectos en grilla (AHORA ES LA SEXTA)
     # ======================================================
     with tab6:
         st.subheader("🏢 Proyectos en grilla")
@@ -726,32 +723,19 @@ def main_app():
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
 
-
     # ======================================================
-    # TAB 7
+    # TAB 7: Cronograma de visitas (AHORA ES LA SÉPTIMA)
     # ======================================================
     with tab7:
         st.subheader("📅 Cronograma de visitas")
         st.info("Programación de visitas de seguimiento e implementación metodologica Last Planner System en obra")
 
-
     # ======================================================
-    # TAB 8
+    # TAB 8: Pull Planning (AHORA ES LA OCTAVA)
     # ======================================================
     with tab8:
         st.subheader("⏱️ Pull Planning")
         st.info("Pull planning en obra")
-
-
-
-
-
-
-
-
-
-
-
 
 # ----------------------------
 # Ejecución principal
