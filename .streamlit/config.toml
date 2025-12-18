@@ -1,0 +1,28 @@
+[theme]
+primaryColor = "#0a3d62"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#eaf3fb"
+textColor = "#000000"
+font = "sans serif"
+
+[server]
+enableCors = false
+enableXsrfProtection = true
+maxUploadSize = 100
+
+[browser]
+serverAddress = "localhost"
+serverPort = 8501
+gatherUsageStats = false
+
+[client]
+showErrorDetails = true
+
+[menu]
+hideGitHubLink = true
+
+[runner]
+fastReruns = true
+
+[global]
+developmentMode = false
