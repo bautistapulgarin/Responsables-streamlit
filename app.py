@@ -3,6 +3,55 @@ import pandas as pd
 import streamlit.components.v1 as components
 import json
 
+# ============ CSS PARA OCULTAR ELEMENTOS DE STREAMLIT CLOUD/GITHUB ============
+hide_streamlit_style = """
+    <style>
+    /* Elementos principales que debes ocultar */
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    
+    /* Botón de deploy de Streamlit Cloud */
+    [data-testid="stDeployButton"] {display: none !important;}
+    
+    /* Badge de "Made with Streamlit" */
+    [data-testid="stAppViewContainer"] > footer {display: none !important;}
+    
+    /* Botones de la toolbar */
+    [data-testid="stToolbar"] {display: none !important;}
+    
+    /* Menú de hamburguesa específico */
+    button[title="View fullscreen"] {display: none !important;}
+    button[title="View app source code"] {display: none !important;}
+    button[title="Get app URL"] {display: none !important;}
+    button[title="Share"] {display: none !important;}
+    
+    /* Elementos de header */
+    .stApp > header {display: none !important;}
+    
+    /* Ajustar margen cuando se oculta header */
+    .stApp {margin-top: -80px !important;}
+    
+    /* Ocultar cualquier elemento con clase de viewer badge */
+    .viewerBadge_container__1QSob {display: none !important;}
+    
+    /* Elementos específicos de Streamlit Cloud */
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    
+    /* Ocultar el botón de menú hamburguesa */
+    button[kind="header"] {display: none !important;}
+    
+    /* Asegurar que no haya scrollbars innecesarios */
+    .stApp {overflow: hidden !important;}
+    
+    /* Elementos de GitHub si aparecen */
+    [href*="github.com"] {display: none !important;}
+    [href*="streamlit.io"] {display: none !important;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # ----------------------------
 # Configuración general
 # ----------------------------
@@ -266,7 +315,64 @@ def main_app():
         else:
             st.info("No hay registros en el archivo Directorio.xlsx")
 
-    # ... (el resto del código se mantiene igual hasta el final) ...
+    # NOTA: Aquí debes mantener el resto del código de las otras pestañas (tab2, tab3, etc.)
+    # que tenías originalmente en tu aplicación
+    
+    # ======================================================
+    # TAB 2: Responsables por Proyecto
+    # ======================================================
+    with tab2:
+        st.subheader("🧑🏿 Responsables por Proyecto")
+        st.info("Contenido de la pestaña de Responsables por Proyecto")
+        # Aquí va tu código original para esta pestaña
+    
+    # ======================================================
+    # TAB 3: Reporte de Avances
+    # ======================================================
+    with tab3:
+        st.subheader("📈 Reporte de Avances")
+        st.info("Contenido de la pestaña de Reporte de Avances")
+        # Aquí va tu código original para esta pestaña
+    
+    # ======================================================
+    # TAB 4: Horario Reuniones LP
+    # ======================================================
+    with tab4:
+        st.subheader("🕰️ Horario Reuniones LP")
+        st.info("Contenido de la pestaña de Horario Reuniones LP")
+        # Aquí va tu código original para esta pestaña
+    
+    # ======================================================
+    # TAB 5: Formulario
+    # ======================================================
+    with tab5:
+        st.subheader("📋 Formulario")
+        st.info("Contenido de la pestaña de Formulario")
+        # Aquí va tu código original para esta pestaña
+    
+    # ======================================================
+    # TAB 6: Proyectos en grilla
+    # ======================================================
+    with tab6:
+        st.subheader("🏢 Proyectos en grilla")
+        st.info("Contenido de la pestaña de Proyectos en grilla")
+        # Aquí va tu código original para esta pestaña
+    
+    # ======================================================
+    # TAB 7: Cronograma de visitas
+    # ======================================================
+    with tab7:
+        st.subheader("📅 Cronograma de visitas")
+        st.info("Contenido de la pestaña de Cronograma de visitas")
+        # Aquí va tu código original para esta pestaña
+    
+    # ======================================================
+    # TAB 8: Pull Planning
+    # ======================================================
+    with tab8:
+        st.subheader("⏱️ Pull Planning")
+        st.info("Contenido de la pestaña de Pull Planning")
+        # Aquí va tu código original para esta pestaña
 
 # ----------------------------
 # Ejecución principal
