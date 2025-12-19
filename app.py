@@ -65,10 +65,6 @@ def login_screen():
         unsafe_allow_html=True,
     )
     
-    # Resto del código de login_screen() sin cambios...
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        # ... (código existente)
 
 # ----------------------------
 # App principal
