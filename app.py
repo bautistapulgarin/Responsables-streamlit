@@ -21,27 +21,54 @@ st.set_page_config(
 # Pantalla de Login
 # ----------------------------
 def login_screen():
+    # AÑADIR ESTOS ESTILOS EN LA PANTALLA DE LOGIN
+    st.markdown(
+        """
+        <style>
+        /* Ocultar elementos del menú superior derecho en login */
+        .stDeployButton {
+            display: none;
+        }
+        #MainMenu {
+            visibility: hidden;
+        }
+        footer {
+            visibility: hidden;
+        }
+        header {
+            visibility: hidden;
+        }
+        
+        [data-testid="stToolbar"] {
+            display: none !important;
+        }
+        
+        #stMainMenu {
+            display: none !important;
+        }
+        
+        [data-testid="baseButton-header"] {
+            display: none !important;
+        }
+        
+        /* Estilos para el login */
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Resto del código de login_screen() sin cambios...
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("loading.png", width=120)
-
-        st.markdown(
-            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
-            unsafe_allow_html=True
-        )
-
-        # ---------- LOGIN CON FORMULARIO (AHORA ENTER FUNCIONA) ----------
-        with st.form("login_form"):
-            password = st.text_input("Contraseña", type="password")
-            submit = st.form_submit_button("Ingresar")
-
-        if submit:
-            if password == st.secrets["password"]:
-                st.session_state["logged_in"] = True
-                st.success("Acceso concedido")
-                st.rerun()
-            else:
-                st.error("Contraseña incorrecta")
+        # ... (código existente)
 
 # ----------------------------
 # App principal
