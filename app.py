@@ -17,6 +17,31 @@ st.set_page_config(
     }
 )
 
+# ----------------------------
+# Pantalla de Login
+# ----------------------------
+def login_screen():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("loading.png", width=120)
+
+        st.markdown(
+            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
+            unsafe_allow_html=True
+        )
+
+        # ---------- LOGIN CON FORMULARIO (AHORA ENTER FUNCIONA) ----------
+        with st.form("login_form"):
+            password = st.text_input("Contraseña", type="password")
+            submit = st.form_submit_button("Ingresar")
+
+        if submit:
+            if password == st.secrets["password"]:
+                st.session_state["logged_in"] = True
+                st.success("Acceso concedido")
+                st.rerun()
+            else:
+                st.error("Contraseña incorrecta")
 
 # ----------------------------
 # App principal
@@ -722,5 +747,3 @@ if st.session_state["logged_in"]:
     main_app()
 else:
     login_screen()
-
-
