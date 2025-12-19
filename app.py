@@ -18,66 +18,36 @@ st.set_page_config(
 )
 
 # ----------------------------
-# CSS para ocultar elementos en la pantalla de login
+# Pantalla de Login
 # ----------------------------
-def apply_login_css():
-    st.markdown(
-        """
-        <style>
-        /* Ocultar todos los elementos de la barra superior */
-        header[data-testid="stHeader"] {
-            display: none !important;
-        }
-        
-        /* Ocultar menú de hamburguesa */
-        #stMainMenu {
-            display: none !important;
-        }
-        
-        /* Ocultar botón de share */
-        [data-testid="stToolbar"] {
-            display: none !important;
-        }
-        
-        /* Ocultar botón de deploy (GitHub) */
-        .stDeployButton {
-            display: none !important;
-        }
-        
-        /* Ocultar el menú de tres puntos */
-        #MainMenu {
-            visibility: hidden !important;
-        }
-        
-        /* Ocultar el footer */
-        footer {
-            visibility: hidden !important;
-        }
-        
-        /* Ocultar el botón de settings si existe */
-        button[title="View fullscreen"] {
-            display: none !important;
-        }
-        
-        /* Ocultar cualquier elemento con clase relacionada a header */
-        .stApp > header {
-            display: none !important;
-        }
-        
-        /* Asegurar que el contenido principal ocupe todo el espacio */
-        .stApp > div:first-child {
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+def login_screen():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("loading.png", width=120)
+
+        st.markdown(
+            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
+            unsafe_allow_html=True
+        )
+
+        # ---------- LOGIN CON FORMULARIO (AHORA ENTER FUNCIONA) ----------
+        with st.form("login_form"):
+            password = st.text_input("Contraseña", type="password")
+            submit = st.form_submit_button("Ingresar")
+
+        if submit:
+            if password == st.secrets["password"]:
+                st.session_state["logged_in"] = True
+                st.success("Acceso concedido")
+                st.rerun()
+            else:
+                st.error("Contraseña incorrecta")
 
 # ----------------------------
-# CSS para la app principal (se mantiene igual)
+# App principal
 # ----------------------------
-def apply_main_css():
+def main_app():
+
     st.markdown(
         """
     <style>
@@ -149,42 +119,6 @@ def apply_main_css():
         """,
         unsafe_allow_html=True,
     )
-
-# ----------------------------
-# Pantalla de Login
-# ----------------------------
-def login_screen():
-    # Aplicar CSS específico para login
-    apply_login_css()
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image("loading.png", width=120)
-
-        st.markdown(
-            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
-            unsafe_allow_html=True
-        )
-
-        # ---------- LOGIN CON FORMULARIO (AHORA ENTER FUNCIONA) ----------
-        with st.form("login_form"):
-            password = st.text_input("Contraseña", type="password")
-            submit = st.form_submit_button("Ingresar")
-
-        if submit:
-            if password == st.secrets["password"]:
-                st.session_state["logged_in"] = True
-                st.success("Acceso concedido")
-                st.rerun()
-            else:
-                st.error("Contraseña incorrecta")
-
-# ----------------------------
-# App principal
-# ----------------------------
-def main_app():
-    # Aplicar CSS para la app principal
-    apply_main_css()
 
     col_title, col_logo = st.columns([6, 1])
     with col_title:
@@ -813,4 +747,3 @@ if st.session_state["logged_in"]:
     main_app()
 else:
     login_screen()
-    
