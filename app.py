@@ -139,234 +139,234 @@ def main_app():
     ])
     
 
-
-# ======================================================
-# TAB 1: Directorio Documental (AHORA ES LA PRIMERA)
-# ======================================================
-with tab1:
-    st.subheader("📂 Directorio Documental")
-
-    try:
-        df_dir = pd.read_excel("data/Directorio.xlsx")
-    except FileNotFoundError:
-        st.error("⚠️ No se encontró el archivo 'data/Directorio.xlsx'")
-        st.stop()
-    except Exception as e:
-        st.error(f"Error al cargar el archivo: {e}")
-        st.stop()
-
-    columnas_esperadas = ["ID", "ID_Padre", "Nivel", "Nombre", "Tipo", "Descripción", "URL", "Orden"]
-    faltantes = [c for c in columnas_esperadas if c not in df_dir.columns]
-    if faltantes:
-        st.error(f"El archivo no contiene las columnas requeridas: {faltantes}")
-        st.stop()
-
-    def construir_arbol(df, id_padre=None):
-        df_nivel = df[df["ID_Padre"].fillna("") == (id_padre or "")]
-        df_nivel = df_nivel.sort_values("Orden", ascending=True)
-        arbol = []
-        for _, fila in df_nivel.iterrows():
-            hijos = construir_arbol(df, fila["ID"])
-            arbol.append({
-                "id": fila["ID"],
-                "nombre": fila["Nombre"],
-                "tipo": str(fila["Tipo"]).strip() if pd.notna(fila["Tipo"]) else "Archivo",
-                "url": str(fila["URL"]).strip() if pd.notna(fila["URL"]) else "",
-                "descripcion": str(fila["Descripción"]).strip() if pd.notna(fila["Descripción"]) else "",
-                "hijos": hijos
-            })
-        return arbol
-
-    arbol_completo = construir_arbol(df_dir)
-
-    # --- BÚSQUEDA AVANZADA CON SUGERENCIAS ---
-    st.markdown("---")
     
-    # Extraer todos los nombres para sugerencias de búsqueda
-    def extraer_nombres(nodos):
-        nombres = []
-        for nodo in nodos:
-            nombres.append(nodo["nombre"])
-            nombres.extend(extraer_nombres(nodo["hijos"]))
-        return nombres
+    # ======================================================
+    # TAB 1: Directorio Documental (AHORA ES LA PRIMERA)
+    # ======================================================
+    with tab1:
+        st.subheader("📂 Directorio Documental")
     
-    todos_nombres = list(set(extraer_nombres(arbol_completo)))
+        try:
+            df_dir = pd.read_excel("data/Directorio.xlsx")
+        except FileNotFoundError:
+            st.error("⚠️ No se encontró el archivo 'data/Directorio.xlsx'")
+            st.stop()
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
+            st.stop()
     
-    # Campo de búsqueda con autocompletado
-    col1, col2, col3 = st.columns([3, 1, 1])
+        columnas_esperadas = ["ID", "ID_Padre", "Nivel", "Nombre", "Tipo", "Descripción", "URL", "Orden"]
+        faltantes = [c for c in columnas_esperadas if c not in df_dir.columns]
+        if faltantes:
+            st.error(f"El archivo no contiene las columnas requeridas: {faltantes}")
+            st.stop()
     
-    with col1:
-        termino_busqueda = st.text_input(
-            "🔍 Buscar en el directorio:",
-            placeholder="Escribe para buscar...",
-            help="Busca por nombre, descripción o tipo"
-        )
-    
-    with col2:
-        tipo_busqueda = st.selectbox(
-            "Buscar en:",
-            ["Todo", "Nombres", "Descripciones", "Tipos"],
-            help="Selecciona dónde buscar"
-        )
-    
-    with col3:
-        st.write("")  # Espaciador
-        st.write("")  # Espaciador
-        if st.button("🔄 Limpiar", use_container_width=True):
-            st.rerun()
-    
-    # Mostrar sugerencias si hay texto
-    if termino_busqueda.strip():
-        sugerencias = [n for n in todos_nombres if termino_busqueda.lower() in n.lower()]
-        if sugerencias:
-            with st.expander(f"💡 Sugerencias ({len(sugerencias)})"):
-                for sug in sugerencias[:10]:  # Mostrar solo las primeras 10
-                    st.caption(f"• {sug}")
-                if len(sugerencias) > 10:
-                    st.caption(f"... y {len(sugerencias) - 10} más")
-    
-    st.markdown("---")
-
-    def filtrar_arbol_avanzado(nodos, termino, tipo_busqueda="Todo"):
-        """Filtra el árbol según el término y tipo de búsqueda"""
-        resultados = []
-        
-        for nodo in nodos:
-            # Determinar si el nodo coincide según el tipo de búsqueda
-            if tipo_busqueda == "Todo":
-                coincide = (
-                    termino.lower() in nodo["nombre"].lower() or
-                    termino.lower() in nodo["descripcion"].lower() or
-                    (termino.lower() in nodo["tipo"].lower() if nodo["tipo"] else False)
-                )
-            elif tipo_busqueda == "Nombres":
-                coincide = termino.lower() in nodo["nombre"].lower()
-            elif tipo_busqueda == "Descripciones":
-                coincide = termino.lower() in nodo["descripcion"].lower()
-            elif tipo_busqueda == "Tipos":
-                coincide = termino.lower() in nodo["tipo"].lower() if nodo["tipo"] else False
-            
-            # Filtrar hijos recursivamente
-            hijos_filtrados = filtrar_arbol_avanzado(nodo["hijos"], termino, tipo_busqueda)
-            
-            # Si el nodo coincide o tiene hijos que coinciden, incluirlo
-            if coincide or hijos_filtrados:
-                resultados.append({
-                    **nodo,
-                    "hijos": hijos_filtrados,
-                    "coincide": coincide
+        def construir_arbol(df, id_padre=None):
+            df_nivel = df[df["ID_Padre"].fillna("") == (id_padre or "")]
+            df_nivel = df_nivel.sort_values("Orden", ascending=True)
+            arbol = []
+            for _, fila in df_nivel.iterrows():
+                hijos = construir_arbol(df, fila["ID"])
+                arbol.append({
+                    "id": fila["ID"],
+                    "nombre": fila["Nombre"],
+                    "tipo": str(fila["Tipo"]).strip() if pd.notna(fila["Tipo"]) else "Archivo",
+                    "url": str(fila["URL"]).strip() if pd.notna(fila["URL"]) else "",
+                    "descripcion": str(fila["Descripción"]).strip() if pd.notna(fila["Descripción"]) else "",
+                    "hijos": hijos
                 })
+            return arbol
+    
+        arbol_completo = construir_arbol(df_dir)
+    
+        # --- BÚSQUEDA AVANZADA CON SUGERENCIAS ---
+        st.markdown("---")
         
-        return resultados
-
-    def mostrar_arbol_con_resaltado(nodos, termino="", tipo_busqueda="Todo"):
-        """Muestra el árbol con elementos coincidentes resaltados"""
-        for nodo in nodos:
-            # Determinar si coincide
-            if tipo_busqueda == "Todo":
-                coincide = (
-                    termino and (
+        # Extraer todos los nombres para sugerencias de búsqueda
+        def extraer_nombres(nodos):
+            nombres = []
+            for nodo in nodos:
+                nombres.append(nodo["nombre"])
+                nombres.extend(extraer_nombres(nodo["hijos"]))
+            return nombres
+        
+        todos_nombres = list(set(extraer_nombres(arbol_completo)))
+        
+        # Campo de búsqueda con autocompletado
+        col1, col2, col3 = st.columns([3, 1, 1])
+        
+        with col1:
+            termino_busqueda = st.text_input(
+                "🔍 Buscar en el directorio:",
+                placeholder="Escribe para buscar...",
+                help="Busca por nombre, descripción o tipo"
+            )
+        
+        with col2:
+            tipo_busqueda = st.selectbox(
+                "Buscar en:",
+                ["Todo", "Nombres", "Descripciones", "Tipos"],
+                help="Selecciona dónde buscar"
+            )
+        
+        with col3:
+            st.write("")  # Espaciador
+            st.write("")  # Espaciador
+            if st.button("🔄 Limpiar", use_container_width=True):
+                st.rerun()
+        
+        # Mostrar sugerencias si hay texto
+        if termino_busqueda.strip():
+            sugerencias = [n for n in todos_nombres if termino_busqueda.lower() in n.lower()]
+            if sugerencias:
+                with st.expander(f"💡 Sugerencias ({len(sugerencias)})"):
+                    for sug in sugerencias[:10]:  # Mostrar solo las primeras 10
+                        st.caption(f"• {sug}")
+                    if len(sugerencias) > 10:
+                        st.caption(f"... y {len(sugerencias) - 10} más")
+        
+        st.markdown("---")
+    
+        def filtrar_arbol_avanzado(nodos, termino, tipo_busqueda="Todo"):
+            """Filtra el árbol según el término y tipo de búsqueda"""
+            resultados = []
+            
+            for nodo in nodos:
+                # Determinar si el nodo coincide según el tipo de búsqueda
+                if tipo_busqueda == "Todo":
+                    coincide = (
                         termino.lower() in nodo["nombre"].lower() or
                         termino.lower() in nodo["descripcion"].lower() or
                         (termino.lower() in nodo["tipo"].lower() if nodo["tipo"] else False)
                     )
-                )
-            elif tipo_busqueda == "Nombres":
-                coincide = termino and termino.lower() in nodo["nombre"].lower()
-            elif tipo_busqueda == "Descripciones":
-                coincide = termino and termino.lower() in nodo["descripcion"].lower()
-            elif tipo_busqueda == "Tipos":
-                coincide = termino and nodo["tipo"] and termino.lower() in nodo["tipo"].lower()
-            
-            if nodo["tipo"].lower() == "carpeta":
-                # Icono y nombre con posible resaltado
-                icono = "📁"
-                if coincide:
-                    icono = "🔍📁"
-                    nombre_html = f"<strong>{nodo['nombre']}</strong>"
-                else:
-                    nombre_html = nodo['nombre']
+                elif tipo_busqueda == "Nombres":
+                    coincide = termino.lower() in nodo["nombre"].lower()
+                elif tipo_busqueda == "Descripciones":
+                    coincide = termino.lower() in nodo["descripcion"].lower()
+                elif tipo_busqueda == "Tipos":
+                    coincide = termino.lower() in nodo["tipo"].lower() if nodo["tipo"] else False
                 
-                # Crear el expander
-                with st.expander(f"{icono} {nombre_html}", expanded=coincide):
-                    # Descripción
-                    if nodo["descripcion"]:
-                        if coincide and tipo_busqueda in ["Todo", "Descripciones"]:
-                            # Resaltar el término en la descripción
-                            desc_lower = nodo["descripcion"].lower()
-                            term_lower = termino.lower()
-                            if term_lower in desc_lower:
-                                idx = desc_lower.find(term_lower)
-                                parte1 = nodo["descripcion"][:idx]
-                                parte2 = nodo["descripcion"][idx:idx+len(termino)]
-                                parte3 = nodo["descripcion"][idx+len(termino):]
-                                st.markdown(f"📝 *{parte1}**{parte2}**{parte3}*")
+                # Filtrar hijos recursivamente
+                hijos_filtrados = filtrar_arbol_avanzado(nodo["hijos"], termino, tipo_busqueda)
+                
+                # Si el nodo coincide o tiene hijos que coinciden, incluirlo
+                if coincide or hijos_filtrados:
+                    resultados.append({
+                        **nodo,
+                        "hijos": hijos_filtrados,
+                        "coincide": coincide
+                    })
+            
+            return resultados
+    
+        def mostrar_arbol_con_resaltado(nodos, termino="", tipo_busqueda="Todo"):
+            """Muestra el árbol con elementos coincidentes resaltados"""
+            for nodo in nodos:
+                # Determinar si coincide
+                if tipo_busqueda == "Todo":
+                    coincide = (
+                        termino and (
+                            termino.lower() in nodo["nombre"].lower() or
+                            termino.lower() in nodo["descripcion"].lower() or
+                            (termino.lower() in nodo["tipo"].lower() if nodo["tipo"] else False)
+                        )
+                    )
+                elif tipo_busqueda == "Nombres":
+                    coincide = termino and termino.lower() in nodo["nombre"].lower()
+                elif tipo_busqueda == "Descripciones":
+                    coincide = termino and termino.lower() in nodo["descripcion"].lower()
+                elif tipo_busqueda == "Tipos":
+                    coincide = termino and nodo["tipo"] and termino.lower() in nodo["tipo"].lower()
+                
+                if nodo["tipo"].lower() == "carpeta":
+                    # Icono y nombre con posible resaltado
+                    icono = "📁"
+                    if coincide:
+                        icono = "🔍📁"
+                        nombre_html = f"<strong>{nodo['nombre']}</strong>"
+                    else:
+                        nombre_html = nodo['nombre']
+                    
+                    # Crear el expander
+                    with st.expander(f"{icono} {nombre_html}", expanded=coincide):
+                        # Descripción
+                        if nodo["descripcion"]:
+                            if coincide and tipo_busqueda in ["Todo", "Descripciones"]:
+                                # Resaltar el término en la descripción
+                                desc_lower = nodo["descripcion"].lower()
+                                term_lower = termino.lower()
+                                if term_lower in desc_lower:
+                                    idx = desc_lower.find(term_lower)
+                                    parte1 = nodo["descripcion"][:idx]
+                                    parte2 = nodo["descripcion"][idx:idx+len(termino)]
+                                    parte3 = nodo["descripcion"][idx+len(termino):]
+                                    st.markdown(f"📝 *{parte1}**{parte2}**{parte3}*")
+                                else:
+                                    st.markdown(f"📝 *{nodo['descripcion']}*")
                             else:
                                 st.markdown(f"📝 *{nodo['descripcion']}*")
-                        else:
-                            st.markdown(f"📝 *{nodo['descripcion']}*")
-                    
-                    # URL
-                    if nodo["url"]:
-                        st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
-                    
-                    # Hijos
-                    mostrar_arbol_con_resaltado(nodo["hijos"], termino, tipo_busqueda)
-            else:
-                # Archivo
-                icono = "📄"
-                if coincide:
-                    icono = "🔍📄"
-                
-                if nodo["url"]:
-                    if coincide:
-                        st.markdown(f"- {icono} **[{nodo['nombre']}]({nodo['url']})**")
-                    else:
-                        st.markdown(f"- {icono} [{nodo['nombre']}]({nodo['url']})")
+                        
+                        # URL
+                        if nodo["url"]:
+                            st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
+                        
+                        # Hijos
+                        mostrar_arbol_con_resaltado(nodo["hijos"], termino, tipo_busqueda)
                 else:
+                    # Archivo
+                    icono = "📄"
                     if coincide:
-                        st.markdown(f"- {icono} **{nodo['nombre']}**")
+                        icono = "🔍📄"
+                    
+                    if nodo["url"]:
+                        if coincide:
+                            st.markdown(f"- {icono} **[{nodo['nombre']}]({nodo['url']})**")
+                        else:
+                            st.markdown(f"- {icono} [{nodo['nombre']}]({nodo['url']})")
                     else:
-                        st.markdown(f"- {icono} {nodo['nombre']}")
+                        if coincide:
+                            st.markdown(f"- {icono} **{nodo['nombre']}**")
+                        else:
+                            st.markdown(f"- {icono} {nodo['nombre']}")
+                    
+                    # Descripción del archivo
+                    if nodo["descripcion"]:
+                        if coincide and tipo_busqueda in ["Todo", "Descripciones"]:
+                            st.caption(f"**{nodo['descripcion']}**")
+                        else:
+                            st.caption(nodo["descripcion"])
+    
+        # Aplicar búsqueda si hay término
+        if termino_busqueda.strip():
+            st.info(f"Buscando **'{termino_busqueda}'** en: **{tipo_busqueda}**")
+            
+            arbol_filtrado = filtrar_arbol_avanzado(arbol_completo, termino_busqueda, tipo_busqueda)
+            
+            if arbol_filtrado:
+                # Contar resultados
+                def contar_resultados(nodos):
+                    contador = 0
+                    for nodo in nodos:
+                        contador += 1  # Contar el nodo actual
+                        contador += contar_resultados(nodo["hijos"])
+                    return contador
                 
-                # Descripción del archivo
-                if nodo["descripcion"]:
-                    if coincide and tipo_busqueda in ["Todo", "Descripciones"]:
-                        st.caption(f"**{nodo['descripcion']}**")
-                    else:
-                        st.caption(nodo["descripcion"])
-
-    # Aplicar búsqueda si hay término
-    if termino_busqueda.strip():
-        st.info(f"Buscando **'{termino_busqueda}'** en: **{tipo_busqueda}**")
-        
-        arbol_filtrado = filtrar_arbol_avanzado(arbol_completo, termino_busqueda, tipo_busqueda)
-        
-        if arbol_filtrado:
-            # Contar resultados
-            def contar_resultados(nodos):
-                contador = 0
-                for nodo in nodos:
-                    contador += 1  # Contar el nodo actual
-                    contador += contar_resultados(nodo["hijos"])
-                return contador
-            
-            total = contar_resultados(arbol_filtrado)
-            st.success(f"✅ Encontrados: {total} elementos")
-            
-            # Mostrar resultados
-            mostrar_arbol_con_resaltado(arbol_filtrado, termino_busqueda, tipo_busqueda)
+                total = contar_resultados(arbol_filtrado)
+                st.success(f"✅ Encontrados: {total} elementos")
+                
+                # Mostrar resultados
+                mostrar_arbol_con_resaltado(arbol_filtrado, termino_busqueda, tipo_busqueda)
+            else:
+                st.warning("❌ No se encontraron resultados")
+                
+                # Opción para mostrar todo
+                if st.checkbox("Mostrar todo el directorio"):
+                    mostrar_arbol_con_resaltado(arbol_completo)
         else:
-            st.warning("❌ No se encontraron resultados")
-            
-            # Opción para mostrar todo
-            if st.checkbox("Mostrar todo el directorio"):
-                mostrar_arbol_con_resaltado(arbol_completo)
-    else:
-        # Mostrar todo sin filtros
-        mostrar_arbol_con_resaltado(arbol_completo)
-
-
+            # Mostrar todo sin filtros
+            mostrar_arbol_con_resaltado(arbol_completo)
+    
+    
 
 
 
