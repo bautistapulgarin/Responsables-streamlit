@@ -178,22 +178,48 @@ def main_app():
     
         arbol_completo = construir_arbol(df_dir)
     
-        # --- CAMPO DE BÚSQUEDA SIMPLE ---
+        # --- BARRA DE BÚSQUEDA Y CONTROLES ---
         st.markdown("---")
         
-        # Campo de búsqueda
-        busqueda = st.text_input(
-            "🔍 Buscar en el directorio:",
-            placeholder="Buscar carpetas, archivos o descripciones...",
-            key="busqueda_directorio"
-        )
+        # Controles en una fila
+        col1, col2, col3 = st.columns([3, 1, 1])
         
-        # Botón para limpiar
-        if st.button("🔄 Limpiar búsqueda", key="limpiar_busqueda_directorio"):
-            st.session_state["busqueda_directorio"] = ""
+        with col1:
+            # Campo de búsqueda
+            busqueda = st.text_input(
+                "🔍 Buscar en el directorio:",
+                placeholder="Buscar carpetas, archivos o descripciones...",
+                key="busqueda_directorio"
+            )
+        
+        with col2:
+            # Botón para volver al nivel cero
+            st.write("")  # Espaciador
+            st.write("")  # Espaciador
+            volver_inicio = st.button(
+                "⬆️ Colapsar todo",
+                help="Cierra todos los niveles y muestra solo el nivel inicial",
+                use_container_width=True
+            )
+        
+        with col3:
+            # Botón para limpiar búsqueda
+            st.write("")  # Espaciador
+            st.write("")  # Espaciador
+            if st.button("🔄 Limpiar", use_container_width=True):
+                st.session_state["busqueda_directorio"] = ""
+                st.rerun()
+        
+        st.markdown("---")
+    
+        # Estado para controlar qué expansores están abiertos
+        if "expanders_abiertos" not in st.session_state:
+            st.session_state.expanders_abiertos = set()
+        
+        # Si se presiona "Colapsar todo", limpiar todos los expansores abiertos
+        if volver_inicio:
+            st.session_state.expanders_abiertos = set()
             st.rerun()
-        
-        st.markdown("---")
     
         def buscar_en_arbol(nodos, termino):
             """Busca en el árbol y devuelve nodos que coincidan"""
@@ -220,17 +246,29 @@ def main_app():
             
             return resultados
     
-        def mostrar_nodos(nodos, termino_busqueda="", nivel=0):
-            """Muestra los nodos del árbol"""
-            for nodo in nodos:
+        def mostrar_nodos(nodos, termino_busqueda="", nivel=0, ruta=""):
+            """Muestra los nodos del árbol con control de expansión"""
+            for i, nodo in enumerate(nodos):
                 es_carpeta = nodo["tipo"].lower() == "carpeta"
                 
-                # Determinar si este nodo coincide
+                # Determinar si este nodo coincide con la búsqueda
                 coincide_nodo = False
                 if termino_busqueda and "coincide" in nodo:
                     coincide_nodo = nodo["coincide"]
                 
-                # Crear título según tipo y si coincide
+                # Crear una clave única para este nodo
+                nodo_key = f"{ruta}/{nodo['id']}_{i}"
+                
+                # Determinar si este expansor debe estar abierto por defecto
+                # 1. Si hay búsqueda y coincide, abrirlo
+                # 2. Si está en la lista de expansores abiertos
+                # 3. Si es nivel 0 o 1 (para mostrar algo inicialmente)
+                expandido_por_defecto = (
+                    coincide_nodo or 
+                    nodo_key in st.session_state.expanders_abiertos or
+                    (nivel < 2 and not busqueda)  # Mostrar primeros niveles si no hay búsqueda
+                )
+                
                 if es_carpeta:
                     icono = "📁"
                     if coincide_nodo:
@@ -240,17 +278,37 @@ def main_app():
                         titulo = f"{icono} {nodo['nombre']}"
                     
                     # Mostrar como expander
-                    with st.expander(titulo, expanded=(coincide_nodo or nivel < 2)):
+                    with st.expander(titulo, expanded=expandido_por_defecto):
+                        # Actualizar estado cuando se expande/contrae
+                        if expandido_por_defecto:
+                            st.session_state.expanders_abiertos.add(nodo_key)
+                        else:
+                            st.session_state.expanders_abiertos.discard(nodo_key)
+                        
                         # Mostrar descripción si existe
                         if nodo["descripcion"]:
-                            st.markdown(f"*{nodo['descripcion']}*")
+                            # Resaltar término de búsqueda en descripción
+                            if termino_busqueda and termino_busqueda.lower() in nodo["descripcion"].lower():
+                                desc = nodo["descripcion"]
+                                term = termino_busqueda.lower()
+                                idx = desc.lower().find(term)
+                                if idx != -1:
+                                    parte1 = desc[:idx]
+                                    parte2 = desc[idx:idx+len(termino_busqueda)]
+                                    parte3 = desc[idx+len(termino_busqueda):]
+                                    st.markdown(f"📝 *{parte1}**{parte2}**{parte3}*")
+                                else:
+                                    st.markdown(f"📝 *{desc}*")
+                            else:
+                                st.markdown(f"📝 *{nodo['descripcion']}*")
                         
                         # Mostrar URL si existe
                         if nodo["url"]:
-                            st.markdown(f"[🔗 Abrir enlace]({nodo['url']})")
+                            st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
                         
                         # Mostrar hijos
-                        mostrar_nodos(nodo["hijos"], termino_busqueda, nivel + 1)
+                        nueva_ruta = f"{ruta}/{nodo['id']}"
+                        mostrar_nodos(nodo["hijos"], termino_busqueda, nivel + 1, nueva_ruta)
                 else:
                     # Es archivo
                     icono = "📄"
@@ -268,11 +326,24 @@ def main_app():
                     
                     # Mostrar descripción si existe
                     if nodo["descripcion"]:
-                        st.caption(f"*{nodo['descripcion']}*")
+                        # Resaltar término de búsqueda
+                        if termino_busqueda and termino_busqueda.lower() in nodo["descripcion"].lower():
+                            desc = nodo["descripcion"]
+                            term = termino_busqueda.lower()
+                            idx = desc.lower().find(term)
+                            if idx != -1:
+                                parte1 = desc[:idx]
+                                parte2 = desc[idx:idx+len(termino_busqueda)]
+                                parte3 = desc[idx+len(termino_busqueda):]
+                                st.caption(f"*{parte1}**{parte2}**{parte3}*")
+                            else:
+                                st.caption(f"*{desc}*")
+                        else:
+                            st.caption(f"*{nodo['descripcion']}*")
     
         # Aplicar búsqueda si existe
         if busqueda and busqueda.strip():
-            st.info(f"Buscando: **{busqueda}**")
+            st.info(f"🔍 Buscando: **{busqueda}**")
             
             # Filtrar árbol
             resultados = buscar_en_arbol(arbol_completo, busqueda.strip())
@@ -287,7 +358,13 @@ def main_app():
                     return total
                 
                 total_encontrados = contar_elementos(resultados)
-                st.success(f"✅ Encontrados {total_encontrados} elementos")
+                
+                # Mostrar estadísticas
+                col_stats1, col_stats2 = st.columns(2)
+                with col_stats1:
+                    st.success(f"✅ {total_encontrados} elementos encontrados")
+                with col_stats2:
+                    st.info("⚠️ Las coincidencias se muestran expandidas")
                 
                 # Mostrar resultados
                 mostrar_nodos(resultados, busqueda.strip())
@@ -298,6 +375,15 @@ def main_app():
         else:
             # Mostrar todo el árbol
             mostrar_nodos(arbol_completo)
+        
+        # Botón adicional al final para volver al inicio
+        st.markdown("---")
+        if st.button("⬆️ Volver al inicio (colapsar todo)", key="colapsar_final", use_container_width=True):
+            st.session_state.expanders_abiertos = set()
+            st.rerun()
+    
+    
+    
 
     
 
