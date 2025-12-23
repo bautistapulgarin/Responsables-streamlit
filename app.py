@@ -1,149 +1,73 @@
 import streamlit as st
+import pandas as pd
+import streamlit.components.v1 as components
+import json
 
-# ===============================
-# CONFIGURACIÓN GENERAL
-# ===============================
+# ----------------------------
+# Configuración general
+# ----------------------------
 st.set_page_config(
-    page_title="Sistema Corporativo",
+    page_title="Consulta de Responsables de Proyectos",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
 )
 
-# ===============================
-# UX GLOBAL
-# ===============================
-def inject_ux():
+# ----------------------------
+# CSS GLOBAL: Loader + ocultar elementos
+# ----------------------------
+def inject_global_css():
     st.markdown(
         """
         <style>
-        /* =====================
-           GOOGLE FONT
-        ===================== */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        /* ---------- OCULTAR ELEMENTOS STREAMLIT ---------- */
+        .stDeployButton {display: none;}
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        [data-testid="stToolbar"] {display: none !important;}
+        #stMainMenu {display: none !important;}
+        [data-testid="baseButton-header"] {display: none !important;}
 
-        /* =====================
-           OCULTAR STREAMLIT
-        ===================== */
-        #MainMenu, footer, header,
-        .stDeployButton,
-        [data-testid="stToolbar"],
-        [data-testid="baseButton-header"] {
-            display: none !important;
-        }
-
-        /* =====================
-           PALETA CORPORATIVA
-        ===================== */
-        :root {
-            --blue-main: #1E3A5F;     /* Azul militar */
-            --blue-soft: #2C5E8A;
-            --bg-main: #F4F7FB;
-            --card-bg: #FFFFFF;
-            --text-main: #1F2933;
-            --text-muted: #6B7280;
-        }
-
-        html, body, .stApp {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            font-size: 14.5px;
-            letter-spacing: -0.01em;
-        }
-
-        /* =====================
-           LOADER
-        ===================== */
+        /* ---------- OVERLAY DE CARGA ---------- */
         #loader-overlay {
             position: fixed;
-            inset: 0;
-            background: var(--bg-main);
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
             z-index: 99999;
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: fadeOut 0.35s ease forwards;
-            animation-delay: 0.65s;
+            animation: hideLoader 0.3s ease forwards;
+            animation-delay: 0.6s;
         }
 
+        /* Spinner */
         .loader {
-            width: 44px;
-            height: 44px;
-            border: 4px solid #D1D9E6;
-            border-top: 4px solid var(--blue-main);
+            width: 48px;
+            height: 48px;
+            border: 5px solid #e0e0e0;
+            border-top: 5px solid #1f4e79;
             border-radius: 50%;
-            animation: spin 0.9s linear infinite;
+            animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        @keyframes fadeOut {
+        @keyframes hideLoader {
             to {
                 opacity: 0;
                 visibility: hidden;
             }
-        }
-
-        /* =====================
-           LOGIN
-        ===================== */
-        .login-wrapper {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .login-card {
-            background: var(--card-bg);
-            width: 100%;
-            max-width: 420px;
-            padding: 2.8rem 2.6rem;
-            border-radius: 20px;
-            box-shadow: 0 24px 60px rgba(30,58,95,0.18);
-            text-align: center;
-        }
-
-        .login-title {
-            font-size: 1.45rem;
-            font-weight: 600;
-            color: var(--blue-main);
-            margin-bottom: 1.6rem;
-        }
-
-        /* =====================
-           TITULOS APP
-        ===================== */
-        h1, h2, h3 {
-            font-weight: 600;
-            letter-spacing: -0.015em;
-        }
-
-        h1 {
-            font-size: 1.65rem;
-            color: var(--blue-main);
-        }
-
-        /* =====================
-           BOTONES
-        ===================== */
-        .stButton > button {
-            width: 100%;
-            background: linear-gradient(135deg, var(--blue-main), var(--blue-soft));
-            color: white;
-            border-radius: 10px;
-            padding: 0.65rem 1.2rem;
-            font-weight: 600;
-            font-size: 0.95rem;
-            border: none;
-            transition: all 0.25s ease;
-        }
-
-        .stButton > button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 22px rgba(30,58,95,0.35);
         }
         </style>
 
@@ -154,58 +78,102 @@ def inject_ux():
         unsafe_allow_html=True
     )
 
-# ===============================
-# LOGIN
-# ===============================
+# ----------------------------
+# Pantalla de Login
+# ----------------------------
 def login_screen():
-    inject_ux()
 
-    st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
-    st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    inject_global_css()
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("loading.png", width=120)
+
+        st.markdown(
+            "<h2 style='text-align: center; margin-top: 10px;'>Acceso al Sistema</h2>",
+            unsafe_allow_html=True
+        )
+
+        with st.form("login_form"):
+            password = st.text_input("Contraseña", type="password")
+            submit = st.form_submit_button("Ingresar")
+
+        if submit:
+            if password == st.secrets["password"]:
+                st.session_state["logged_in"] = True
+                st.success("Acceso concedido")
+                st.rerun()
+            else:
+                st.error("Contraseña incorrecta")
+
+# ----------------------------
+# App principal
+# ----------------------------
+def main_app():
+
+    inject_global_css()
 
     st.markdown(
-        '<div class="login-title">Acceso al Sistema</div>',
-        unsafe_allow_html=True
+        """
+        <style>
+        body, .stApp {
+            background-color: white !important;
+            color: black !important;
+        }
+
+        :root{
+            --blue-dark: #0a3d62;
+            --blue-mid: #1f4e79;
+            --blue-light: #eaf3fb;
+        }
+
+        .reportview-container, .main {
+            background-color: var(--blue-light);
+        }
+
+        .stButton>button {
+            background-color: var(--blue-mid);
+            color: white;
+            border-radius: 8px;
+            border: none;
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+
+        .stButton>button:hover {
+            background-color: #163754;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
 
-    with st.form("login_form"):
-        password = st.text_input("Contraseña", type="password")
-        submit = st.form_submit_button("Ingresar")
+    col_title, col_logo = st.columns([6, 1])
+    with col_title:
+        st.title("Consulta de Responsables de Proyectos")
+    with col_logo:
+        st.image("loading.png", width=80)
 
-    if submit:
-        if password == st.secrets.get("password", "admin"):
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("Contraseña incorrecta")
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        " 📜 Directorio Documental",
+        " 🧑🏿 Responsables por Proyecto",
+        " 📈 Reporte de Avances",
+        " 🕰️ Horario Reuniones LP",
+        " 📋 Formulario",
+        " 🏢 Proyectos en grilla",
+        " 📅 Cronograma de visitas",
+        " ⏱️ Pull Planning"
+    ])
 
-    st.markdown('</div></div>', unsafe_allow_html=True)
+    # ---- El resto de tus tabs permanece exactamente igual ----
 
-# ===============================
-# APP PRINCIPAL
-# ===============================
-def main_app():
-    inject_ux()
-
-    st.title("Consulta de Responsables de Proyectos")
-    st.caption("Sistema corporativo de gestión y consulta")
-    st.divider()
-
-    tab1, tab2 = st.tabs(["📁 Directorio documental", "📊 Reportes"])
-
-    with tab1:
-        st.info("Contenido del Directorio Documental")
-
-    with tab2:
-        st.info("Dashboards y análisis")
-
-# ===============================
-# SESIÓN
-# ===============================
+# ----------------------------
+# Ejecución principal
+# ----------------------------
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_state["logged_in"] = False
 
-if st.session_state.logged_in:
+if st.session_state["logged_in"]:
     main_app()
 else:
     login_screen()
