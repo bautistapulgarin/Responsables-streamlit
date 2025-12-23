@@ -137,14 +137,13 @@ def main_app():
         " 📅 Cronograma de visitas",
         " ⏱️ Pull Planning"
     ])
-
-
+    
     # ======================================================
-    # TAB 1: Directorio Documental
+    # TAB 1: Directorio Documental (AHORA ES LA PRIMERA)
     # ======================================================
     with tab1:
         st.subheader("📂 Directorio Documental")
-    
+
         try:
             df_dir = pd.read_excel("data/Directorio.xlsx")
         except FileNotFoundError:
@@ -153,13 +152,13 @@ def main_app():
         except Exception as e:
             st.error(f"Error al cargar el archivo: {e}")
             st.stop()
-    
+
         columnas_esperadas = ["ID", "ID_Padre", "Nivel", "Nombre", "Tipo", "Descripción", "URL", "Orden"]
         faltantes = [c for c in columnas_esperadas if c not in df_dir.columns]
         if faltantes:
             st.error(f"El archivo no contiene las columnas requeridas: {faltantes}")
             st.stop()
-    
+
         def construir_arbol(df, id_padre=None):
             df_nivel = df[df["ID_Padre"].fillna("") == (id_padre or "")]
             df_nivel = df_nivel.sort_values("Orden", ascending=True)
@@ -175,238 +174,31 @@ def main_app():
                     "hijos": hijos
                 })
             return arbol
-    
-        arbol_completo = construir_arbol(df_dir)
-    
-        # --- CONTROLES DE NAVEGACIÓN ---
-        st.markdown("---")
-        
-        # Inicializar claves del session_state si no existen
-        if "busqueda_dir" not in st.session_state:
-            st.session_state.busqueda_dir = ""
-        
-        if "nivel_expandir" not in st.session_state:
-            st.session_state.nivel_expandir = 0
-        
-        # Crear una fila de controles
-        col_busqueda, col_espacio, col_controles = st.columns([2, 1, 2])
-        
-        with col_busqueda:
-            # Campo de búsqueda usando el valor del session_state
-            busqueda = st.text_input(
-                "🔍 Buscar en directorio:",
-                value=st.session_state.busqueda_dir,
-                placeholder="Escribe para buscar...",
-                key="input_busqueda_dir"
-            )
-            # Actualizar session_state cuando cambia la búsqueda
-            if busqueda != st.session_state.busqueda_dir:
-                st.session_state.busqueda_dir = busqueda
-        
-        with col_controles:
-            # Controles en sub-columnas
-            subcol1, subcol2, subcol3 = st.columns(3)
-            
-            with subcol1:
-                # Botón para mostrar solo nivel 0
-                if st.button("🏠 Nivel 0", help="Muestra solo las carpetas raíz", use_container_width=True):
-                    st.session_state.nivel_expandir = 0
-                    st.session_state.busqueda_dir = ""  # Limpiar búsqueda
-                    st.rerun()
-            
-            with subcol2:
-                # Botón para expandir nivel 1
-                if st.button("📂 Nivel 1", help="Expande solo el primer nivel", use_container_width=True):
-                    st.session_state.nivel_expandir = 1
-                    st.session_state.busqueda_dir = ""  # Limpiar búsqueda
-                    st.rerun()
-            
-            with subcol3:
-                # Botón para limpiar búsqueda
-                if st.button("🔄 Limpiar", help="Limpiar búsqueda actual", use_container_width=True):
-                    st.session_state.busqueda_dir = ""
-                    st.rerun()
-        
-        st.markdown("---")
-    
-        def buscar_en_arbol(nodos, termino):
-            """Busca en el árbol y devuelve nodos que coincidan"""
-            resultados = []
+
+        arbol = construir_arbol(df_dir)
+
+        def mostrar_arbol(nodos):
             for nodo in nodos:
-                coincide = False
-                if termino:
-                    coincide = (
-                        termino.lower() in nodo["nombre"].lower() or
-                        (termino.lower() in nodo["descripcion"].lower() if nodo["descripcion"] else False) or
-                        (termino.lower() in nodo["tipo"].lower() if nodo["tipo"] else False)
-                    )
-                
-                hijos_resultados = buscar_en_arbol(nodo["hijos"], termino)
-                
-                if coincide or hijos_resultados:
-                    nodo_modificado = nodo.copy()
-                    nodo_modificado["hijos"] = hijos_resultados
-                    nodo_modificado["coincide"] = coincide
-                    resultados.append(nodo_modificado)
-            
-            return resultados
-    
-        def mostrar_nodos_controlados(nodos, termino_busqueda="", nivel=0):
-            """Muestra nodos con control de niveles expandidos"""
-            for nodo in nodos:
-                es_carpeta = nodo["tipo"].lower() == "carpeta"
-                coincide_nodo = termino_busqueda and "coincide" in nodo and nodo["coincide"]
-                
-                # Determinar si este expansor debe estar expandido
-                # Si hay búsqueda y coincide, expandir siempre
-                # Si no hay búsqueda, expandir según el nivel configurado
-                expandir_este = False
-                if termino_busqueda:
-                    expandir_este = coincide_nodo
-                else:
-                    expandir_este = nivel < st.session_state.nivel_expandir
-                
-                if es_carpeta:
-                    icono = "📁"
-                    if coincide_nodo:
-                        icono = "🔍📁"
-                        titulo = f"{icono} **{nodo['nombre']}**"
-                    else:
-                        titulo = f"{icono} {nodo['nombre']}"
-                    
-                    # Mostrar badge de nivel si es útil
-                    nivel_badge = f" (N{nivel})" if nivel > 0 else ""
-                    
-                    with st.expander(f"{titulo}{nivel_badge}", expanded=expandir_este):
-                        # Descripción
+                if nodo["tipo"].lower() == "carpeta":
+                    with st.expander(f"📁 {nodo['nombre']}", expanded=False):
                         if nodo["descripcion"]:
-                            # Resaltar término de búsqueda si existe
-                            if termino_busqueda and termino_busqueda.lower() in nodo["descripcion"].lower():
-                                desc = nodo["descripcion"]
-                                term = termino_busqueda.lower()
-                                idx = desc.lower().find(term)
-                                if idx != -1:
-                                    parte1 = desc[:idx]
-                                    parte2 = desc[idx:idx+len(termino_busqueda)]
-                                    parte3 = desc[idx+len(termino_busqueda):]
-                                    st.markdown(f"📝 *{parte1}**{parte2}**{parte3}*")
-                                else:
-                                    st.markdown(f"📝 *{desc}*")
-                            else:
-                                st.markdown(f"📝 *{nodo['descripcion']}*")
-                        
-                        # URL
+                            st.markdown(f"📝 *{nodo['descripcion']}*")
                         if nodo["url"]:
                             st.markdown(f"[🌐 Abrir enlace]({nodo['url']})")
-                        
-                        # Mostrar hijos
-                        mostrar_nodos_controlados(nodo["hijos"], termino_busqueda, nivel + 1)
+                        mostrar_arbol(nodo["hijos"])
                 else:
-                    # Archivo - solo mostrar si:
-                    # 1. Hay búsqueda y coincide, o
-                    # 2. No hay búsqueda y el nivel está expandido
-                    mostrar_archivo = False
-                    if termino_busqueda:
-                        mostrar_archivo = coincide_nodo
+                    if nodo["url"]:
+                        st.markdown(f"- 📄 [{nodo['nombre']}]({nodo['url']})")
                     else:
-                        mostrar_archivo = nivel <= st.session_state.nivel_expandir
-                    
-                    if mostrar_archivo:
-                        icono = "📄"
-                        if coincide_nodo:
-                            icono = "🔍📄"
-                            nombre_mostrar = f"**{nodo['nombre']}**"
-                        else:
-                            nombre_mostrar = nodo["nombre"]
-                        
-                        if nodo["url"]:
-                            st.markdown(f"- {icono} [{nombre_mostrar}]({nodo['url']})")
-                        else:
-                            st.markdown(f"- {icono} {nombre_mostrar}")
-                        
-                        if nodo["descripcion"]:
-                            # Resaltar término de búsqueda si existe
-                            if termino_busqueda and termino_busqueda.lower() in nodo["descripcion"].lower():
-                                desc = nodo["descripcion"]
-                                term = termino_busqueda.lower()
-                                idx = desc.lower().find(term)
-                                if idx != -1:
-                                    parte1 = desc[:idx]
-                                    parte2 = desc[idx:idx+len(termino_busqueda)]
-                                    parte3 = desc[idx+len(termino_busqueda):]
-                                    st.caption(f"*{parte1}**{parte2}**{parte3}*")
-                                else:
-                                    st.caption(f"*{desc}*")
-                            else:
-                                st.caption(f"*{nodo['descripcion']}*")
-    
-        # Usar la búsqueda del session_state
-        busqueda_actual = st.session_state.busqueda_dir
-        
-        # Aplicar búsqueda si existe
-        if busqueda_actual and busqueda_actual.strip():
-            st.info(f"🔍 Buscando: **{busqueda_actual}**")
-            
-            resultados = buscar_en_arbol(arbol_completo, busqueda_actual.strip())
-            
-            if resultados:
-                # Mostrar estadísticas
-                def contar_coincidencias(nodos):
-                    count = 0
-                    for nodo in nodos:
-                        count += 1
-                        count += contar_coincidencias(nodo["hijos"])
-                    return count
-                
-                total = contar_coincidencias(resultados)
-                st.success(f"✅ {total} elementos encontrados")
-                
-                # Mostrar resultados (siempre expandidos cuando hay búsqueda)
-                mostrar_nodos_controlados(resultados, busqueda_actual.strip())
-            else:
-                st.warning("❌ No se encontraron resultados")
-                st.info("Mostrando estructura completa...")
-                mostrar_nodos_controlados(arbol_completo)
+                        st.markdown(f"- 📄 {nodo['nombre']}")
+                    if nodo["descripcion"]:
+                        st.caption(nodo["descripcion"])
+
+        if arbol:
+            mostrar_arbol(arbol)
         else:
-            # Mostrar mensaje informativo sobre niveles
-            if st.session_state.nivel_expandir == 0:
-                st.info("🏠 Mostrando solo nivel raíz. Usa 'Nivel 1' para expandir.")
-            elif st.session_state.nivel_expandir == 1:
-                st.info("📂 Mostrando hasta nivel 1 expandido.")
-            elif st.session_state.nivel_expandir > 1:
-                st.info(f"📚 Mostrando hasta nivel {st.session_state.nivel_expandir} expandido.")
-            
-            # Mostrar árbol completo
-            mostrar_nodos_controlados(arbol_completo)
-        
-        # Botón adicional para expandir todo si lo deseas
-        st.markdown("---")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("📚 Expandir todo", use_container_width=True):
-                st.session_state.nivel_expandir = 999  # Número grande para expandir todo
-                st.session_state.busqueda_dir = ""
-                st.rerun()
-        
-        with col2:
-            if st.button("🏠 Colapsar todo", use_container_width=True):
-                st.session_state.nivel_expandir = 0
-                st.session_state.busqueda_dir = ""
-                st.rerun()
-    
-    
-    
-    
+            st.info("No hay registros en el archivo Directorio.xlsx")
 
-    
-
-
-    
-    
-    
-
-    
     # ======================================================
     # TAB 2: Responsables por Proyecto (AHORA ES LA SEGUNDA)
     # ======================================================
