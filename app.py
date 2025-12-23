@@ -17,14 +17,13 @@ st.set_page_config(
 )
 
 # ----------------------------
-# Pantalla de Login
+# CSS GLOBAL: Loader + ocultar elementos
 # ----------------------------
-def login_screen():
-
-    # 🔒 Ocultar elementos por defecto de Streamlit (Share, GitHub, etc.)
+def inject_global_css():
     st.markdown(
         """
         <style>
+        /* ---------- OCULTAR ELEMENTOS STREAMLIT ---------- */
         .stDeployButton {display: none;}
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
@@ -32,10 +31,59 @@ def login_screen():
         [data-testid="stToolbar"] {display: none !important;}
         #stMainMenu {display: none !important;}
         [data-testid="baseButton-header"] {display: none !important;}
+
+        /* ---------- OVERLAY DE CARGA ---------- */
+        #loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: hideLoader 0.3s ease forwards;
+            animation-delay: 0.6s;
+        }
+
+        /* Spinner */
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #e0e0e0;
+            border-top: 5px solid #1f4e79;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes hideLoader {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
         </style>
+
+        <div id="loader-overlay">
+            <div class="loader"></div>
+        </div>
         """,
         unsafe_allow_html=True
     )
+
+# ----------------------------
+# Pantalla de Login
+# ----------------------------
+def login_screen():
+
+    inject_global_css()
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -63,18 +111,11 @@ def login_screen():
 # ----------------------------
 def main_app():
 
-    # 🔒 Ocultar elementos por defecto de Streamlit
+    inject_global_css()
+
     st.markdown(
         """
         <style>
-        .stDeployButton {display: none;}
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        [data-testid="stToolbar"] {display: none !important;}
-        #stMainMenu {display: none !important;}
-        [data-testid="baseButton-header"] {display: none !important;}
-
         body, .stApp {
             background-color: white !important;
             color: black !important;
@@ -124,10 +165,7 @@ def main_app():
         " ⏱️ Pull Planning"
     ])
 
-    # (El resto del código de tabs permanece SIN CAMBIOS)
-    # ------------------------------------------------------------------
-    # AQUÍ VA TODO TU CONTENIDO ORIGINAL DE TABS 1 A 8
-    # ------------------------------------------------------------------
+    # ---- El resto de tus tabs permanece exactamente igual ----
 
 # ----------------------------
 # Ejecución principal
