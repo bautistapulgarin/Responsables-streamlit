@@ -1,5 +1,4 @@
 import streamlit as st
-from PIL import Image
 
 # ===============================
 # CONFIGURACIÓN GENERAL
@@ -11,12 +10,17 @@ st.set_page_config(
 )
 
 # ===============================
-# UX / CSS GLOBAL
+# UX GLOBAL
 # ===============================
 def inject_ux():
     st.markdown(
         """
         <style>
+        /* =====================
+           GOOGLE FONT
+        ===================== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
         /* =====================
            OCULTAR STREAMLIT
         ===================== */
@@ -28,29 +32,23 @@ def inject_ux():
         }
 
         /* =====================
-           RESET LAYOUT
-        ===================== */
-        .block-container {
-            padding-top: 2rem !important;
-            padding-bottom: 2rem !important;
-            max-width: 100% !important;
-        }
-
-        /* =====================
            PALETA CORPORATIVA
         ===================== */
         :root {
-            --blue-main: #1F3A5F;   /* Azul militar */
-            --blue-soft: #2F5C8F;
-            --bg-main: #F2F5FA;
+            --blue-main: #1E3A5F;     /* Azul militar */
+            --blue-soft: #2C5E8A;
+            --bg-main: #F4F7FB;
             --card-bg: #FFFFFF;
-            --text-main: #2C2C2C;
+            --text-main: #1F2933;
+            --text-muted: #6B7280;
         }
 
         html, body, .stApp {
             background-color: var(--bg-main);
             color: var(--text-main);
-            font-family: "Inter", "Segoe UI", sans-serif;
+            font-family: 'Inter', sans-serif;
+            font-size: 14.5px;
+            letter-spacing: -0.01em;
         }
 
         /* =====================
@@ -64,14 +62,14 @@ def inject_ux():
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: fadeOut 0.4s ease forwards;
-            animation-delay: 0.7s;
+            animation: fadeOut 0.35s ease forwards;
+            animation-delay: 0.65s;
         }
 
         .loader {
-            width: 46px;
-            height: 46px;
-            border: 4px solid #D6DEE9;
+            width: 44px;
+            height: 44px;
+            border: 4px solid #D1D9E6;
             border-top: 4px solid var(--blue-main);
             border-radius: 50%;
             animation: spin 0.9s linear infinite;
@@ -102,22 +100,30 @@ def inject_ux():
             background: var(--card-bg);
             width: 100%;
             max-width: 420px;
-            padding: 2.6rem;
-            border-radius: 18px;
-            box-shadow: 0 22px 55px rgba(31,58,95,0.18);
+            padding: 2.8rem 2.6rem;
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(30,58,95,0.18);
             text-align: center;
         }
 
-        .login-logo img {
-            width: 88px;
-            margin-bottom: 1rem;
-        }
-
         .login-title {
-            font-size: 1.35rem;
+            font-size: 1.45rem;
             font-weight: 600;
             color: var(--blue-main);
-            margin-bottom: 1.8rem;
+            margin-bottom: 1.6rem;
+        }
+
+        /* =====================
+           TITULOS APP
+        ===================== */
+        h1, h2, h3 {
+            font-weight: 600;
+            letter-spacing: -0.015em;
+        }
+
+        h1 {
+            font-size: 1.65rem;
+            color: var(--blue-main);
         }
 
         /* =====================
@@ -128,15 +134,16 @@ def inject_ux():
             background: linear-gradient(135deg, var(--blue-main), var(--blue-soft));
             color: white;
             border-radius: 10px;
-            padding: 0.6rem 1.2rem;
+            padding: 0.65rem 1.2rem;
             font-weight: 600;
+            font-size: 0.95rem;
             border: none;
             transition: all 0.25s ease;
         }
 
         .stButton > button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(31,58,95,0.35);
+            box-shadow: 0 8px 22px rgba(30,58,95,0.35);
         }
         </style>
 
@@ -155,15 +162,6 @@ def login_screen():
 
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
-
-    # LOGO (coloca loading.png en la raíz del proyecto)
-    try:
-        st.markdown(
-            '<div class="login-logo"><img src="loading.png"></div>',
-            unsafe_allow_html=True
-        )
-    except:
-        pass
 
     st.markdown(
         '<div class="login-title">Acceso al Sistema</div>',
@@ -184,29 +182,30 @@ def login_screen():
     st.markdown('</div></div>', unsafe_allow_html=True)
 
 # ===============================
-# APLICACIÓN PRINCIPAL
+# APP PRINCIPAL
 # ===============================
 def main_app():
     inject_ux()
 
     st.title("Consulta de Responsables de Proyectos")
+    st.caption("Sistema corporativo de gestión y consulta")
     st.divider()
 
     tab1, tab2 = st.tabs(["📁 Directorio documental", "📊 Reportes"])
 
     with tab1:
-        st.info("Aquí va tu lógica del Directorio Documental.")
+        st.info("Contenido del Directorio Documental")
 
     with tab2:
-        st.info("Aquí van tus dashboards, tablas y análisis.")
+        st.info("Dashboards y análisis")
 
 # ===============================
-# CONTROL DE SESIÓN
+# SESIÓN
 # ===============================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-if not st.session_state.logged_in:
-    login_screen()
-else:
+if st.session_state.logged_in:
     main_app()
+else:
+    login_screen()
