@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 import json
+import plotly.express as px  # <-- Importar Plotly
 
 # ----------------------------
 # Configuración general
@@ -95,7 +96,8 @@ def main_app():
     with col_logo:
         st.image("loading.png", width=80)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    # Añadir la nueva pestaña como la novena
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
         " 📜 Directorio Documental",
         " 🧑🏿 Responsables por Proyecto", 
         " 📈 Reporte de Avances", 
@@ -103,7 +105,8 @@ def main_app():
         " 📋 Formulario",
         " 🏢 Proyectos en grilla",
         " 📅 Cronograma de visitas",
-        " ⏱️ Pull Planning"
+        " ⏱️ Pull Planning",
+        " 📊 Gráfico Interactivo"  # <-- NUEVA PESTAÑA
     ])
 
     # ======================================================
@@ -197,10 +200,8 @@ def main_app():
         else:
             st.info("No se encontraron coincidencias para la búsqueda.")
 
-
-
     # ======================================================
-    # TAB 2: Responsables por Proyecto (AHORA ES LA SEGUNDA)
+    # TAB 2: Responsables por Proyecto
     # ======================================================
     with tab2:
         def load_data():
@@ -325,7 +326,7 @@ def main_app():
             st.warning("No se encontraron resultados con los filtros seleccionados.")
 
     # ======================================================
-    # TAB 3: Reporte de Avances (AHORA ES LA TERCERA)
+    # TAB 3: Reporte de Avances
     # ======================================================
     with tab3:
         st.subheader("📈 Reporte de Avances")
@@ -338,7 +339,7 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
     # ======================================================
-    # TAB 4: Horario Reuniones LP (AHORA ES LA CUARTA)
+    # TAB 4: Horario Reuniones LP
     # ======================================================
     with tab4:
         st.subheader("🕒 Horario Reuniones LP")
@@ -353,7 +354,7 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
     # ======================================================
-    # TAB 5: Formulario (AHORA ES LA QUINTA)
+    # TAB 5: Formulario
     # ======================================================
     with tab5:
         st.subheader("📋 Formulario de Registro")
@@ -388,20 +389,17 @@ def main_app():
                     st.warning("Por favor completa al menos el nombre y el comentario.")
 
     # ======================================================
-    # TAB 6: Proyectos en grilla (AHORA ES LA SEXTA)
+    # TAB 6: Proyectos en grilla
     # ======================================================
     with tab6:
         st.subheader("🏢 Proyectos en grilla")
         st.info("Se refleja el estado de activación de la funcionalidad de grilla")
         
         try:
-            # Cargar el archivo EstadoGrilla desde GitHub
             df_grilla = pd.read_excel("data/EstadoGrilla.xlsx")
             
-            # --- FILTROS PARA LA TABLA PRINCIPAL ---
             st.markdown("### Filtros")
             
-            # Inicializar estados de sesión para los filtros si no existen
             if "filtro_proyecto" not in st.session_state:
                 st.session_state.filtro_proyecto = []
             if "filtro_estado_grilla" not in st.session_state:
@@ -410,25 +408,22 @@ def main_app():
                 st.session_state.filtro_prioridad = []
             if "filtro_componente" not in st.session_state:
                 st.session_state.filtro_componente = []
-            if "filtro_alistamiento" not in st.session_state:  # NUEVO: filtro para Alistamiento
+            if "filtro_alistamiento" not in st.session_state:
                 st.session_state.filtro_alistamiento = []
             
-            # Control único para el reset
             if "reset_counter" not in st.session_state:
                 st.session_state.reset_counter = 0
             
-            # Botón para restablecer filtros - SOLUCIÓN DEFINITIVA
             if st.button("🔄 Restablecer filtros", key="reset_filtros_grilla"):
                 st.session_state.filtro_proyecto = []
                 st.session_state.filtro_estado_grilla = []
                 st.session_state.filtro_prioridad = []
                 st.session_state.filtro_componente = []
-                st.session_state.filtro_alistamiento = []  # NUEVO: reset del filtro Alistamiento
+                st.session_state.filtro_alistamiento = []
                 st.session_state.reset_counter += 1
                 st.success("Filtros restablecidos correctamente")
                 st.rerun()
             
-            # Identificar la columna de estado
             estado_col = None
             posibles_nombres_estado = ['Estado', 'Estado grilla', 'EstadoGrilla', 'Estado_grilla', 'Estado Grilla', 'EstadoGrila']
             for nombre in posibles_nombres_estado:
@@ -436,11 +431,9 @@ def main_app():
                     estado_col = nombre
                     break
             
-            # PRIMER FILTRO: Estado grilla
             col1, col2 = st.columns(2)
             
             with col1:
-                # Filtro por Estado grilla (PRIMERO) - CON CLAVE ÚNICA PARA RESET
                 if estado_col:
                     opciones_estado = sorted(df_grilla[estado_col].dropna().unique().tolist())
                     filtro_estado_grilla = st.multiselect(
@@ -454,8 +447,6 @@ def main_app():
                     st.info("No hay columna de estado disponible")
             
             with col2:
-                # NUEVO FILTRO: Alistamiento - CON CLAVE ÚNICA PARA RESET
-                # Identificar la columna de Alistamiento
                 alistamiento_col = None
                 posibles_nombres_alistamiento = ['Alistamiento', 'Alist', 'AlistamientoGrilla', 'Alistamiento_grilla', 'Alistamiento Grilla']
                 
@@ -467,32 +458,27 @@ def main_app():
                 if alistamiento_col:
                     opciones_alistamiento = sorted(df_grilla[alistamiento_col].dropna().unique().tolist())
                     filtro_alistamiento = st.multiselect(
-                        "🛠️ Alistamiento",  # NUEVO: icono y etiqueta
+                        "🛠️ Alistamiento",
                         options=opciones_alistamiento,
                         default=st.session_state.filtro_alistamiento,
-                        key=f"alistamiento_{st.session_state.reset_counter}"  # Clave única que cambia con cada reset
+                        key=f"alistamiento_{st.session_state.reset_counter}"
                     )
                     st.session_state.filtro_alistamiento = filtro_alistamiento
                 else:
                     st.info("No hay columna 'Alistamiento' disponible")
             
-            # Crear DataFrame base para filtros dependientes
             df_filtrado_base = df_grilla.copy()
             
-            # Aplicar filtro de estado al DataFrame base para los otros filtros
             if st.session_state.filtro_estado_grilla and estado_col:
                 df_filtrado_base = df_filtrado_base[df_filtrado_base[estado_col].isin(st.session_state.filtro_estado_grilla)]
             
-            # Aplicar filtro de alistamiento al DataFrame base para los otros filtros
             if st.session_state.filtro_alistamiento and alistamiento_col:
                 df_filtrado_base = df_filtrado_base[df_filtrado_base[alistamiento_col].isin(st.session_state.filtro_alistamiento)]
             
-            # SEGUNDO FILTRO: Proyecto (dependiente del estado y alistamiento)
             col3, col4 = st.columns(2)
             
             with col3:
                 if 'Proyecto' in df_filtrado_base.columns:
-                    # Las opciones de proyecto se basan en el DataFrame ya filtrado por estado y alistamiento
                     opciones_proyecto = sorted(df_filtrado_base['Proyecto'].dropna().unique().tolist())
                     filtro_proyecto = st.multiselect(
                         "📋 Proyecto",
@@ -504,15 +490,12 @@ def main_app():
                 else:
                     st.info("No hay columna 'Proyecto' disponible")
             
-            # Aplicar filtro de proyecto al DataFrame base para prioridad y componente
             if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado_base.columns:
                 df_filtrado_base = df_filtrado_base[df_filtrado_base['Proyecto'].isin(st.session_state.filtro_proyecto)]
             
-            # TERCER FILTRO: Prioridad (dependiente de estado, alistamiento y proyecto)
             col5, col6 = st.columns(2)
             
             with col5:
-                # Filtro por Prioridad
                 if 'Prioridad' in df_filtrado_base.columns:
                     opciones_prioridad = sorted(df_filtrado_base['Prioridad'].dropna().unique().tolist())
                     filtro_prioridad = st.multiselect(
@@ -526,8 +509,6 @@ def main_app():
                     st.info("No hay columna 'Prioridad' disponible")
             
             with col6:
-                # CUARTO FILTRO: Componente (dependiente de estado, alistamiento, proyecto y prioridad)
-                # Identificar la columna de componente
                 componente_col = None
                 posibles_nombres_componente = ['Componente', 'Component', 'ComponenteGrilla', 'Componente_grilla', 'Componente Grilla']
                 
@@ -537,10 +518,8 @@ def main_app():
                         break
                 
                 if componente_col:
-                    # Aplicar filtros anteriores al DataFrame para las opciones de componente
                     df_para_componente = df_filtrado_base.copy()
                     
-                    # Aplicar filtro de prioridad si existe
                     if st.session_state.filtro_prioridad and 'Prioridad' in df_para_componente.columns:
                         df_para_componente = df_para_componente[df_para_componente['Prioridad'].isin(st.session_state.filtro_prioridad)]
                     
@@ -555,7 +534,6 @@ def main_app():
                 else:
                     st.info("No hay columna 'Componente' disponible")
             
-            # Mostrar estado actual de los filtros
             st.markdown("---")
             filtros_activos = False
             info_text = "🔍 **Estado de filtros:**\n\n"
@@ -566,7 +544,6 @@ def main_app():
             else:
                 info_text += "• 📊 **Estado grilla:** Sin filtro\n"
             
-            # NUEVO: Mostrar estado del filtro Alistamiento
             if st.session_state.filtro_alistamiento:
                 info_text += f"• 🛠️ **Alistamiento:** {', '.join(st.session_state.filtro_alistamiento)}\n"
                 filtros_activos = True
@@ -596,26 +573,20 @@ def main_app():
             else:
                 st.info(info_text)
             
-            # APLICAR TODOS LOS FILTROS AL DATAFRAME FINAL
             df_filtrado_final = df_grilla.copy()
             
-            # Aplicar filtro de Estado grilla
             if st.session_state.filtro_estado_grilla and estado_col:
                 df_filtrado_final = df_filtrado_final[df_filtrado_final[estado_col].isin(st.session_state.filtro_estado_grilla)]
             
-            # NUEVO: Aplicar filtro de Alistamiento
             if st.session_state.filtro_alistamiento and alistamiento_col:
                 df_filtrado_final = df_filtrado_final[df_filtrado_final[alistamiento_col].isin(st.session_state.filtro_alistamiento)]
             
-            # Aplicar filtro de Proyecto
             if st.session_state.filtro_proyecto and 'Proyecto' in df_filtrado_final.columns:
                 df_filtrado_final = df_filtrado_final[df_filtrado_final['Proyecto'].isin(st.session_state.filtro_proyecto)]
             
-            # Aplicar filtro de Prioridad
             if st.session_state.filtro_prioridad and 'Prioridad' in df_filtrado_final.columns:
                 df_filtrado_final = df_filtrado_final[df_filtrado_final['Prioridad'].isin(st.session_state.filtro_prioridad)]
             
-            # Aplicar filtro de Componente
             componente_col_final = None
             for nombre in posibles_nombres_componente:
                 if nombre in df_filtrado_final.columns:
@@ -627,13 +598,10 @@ def main_app():
             
             st.markdown("---")
             
-            # --- MOSTRAR TABLAS FILTRADAS ---
             if 'Proyecto' in df_grilla.columns:
-                # 1. Obtener los proyectos únicos del DataFrame filtrado
                 proyectos_unicos_filtrados = df_filtrado_final['Proyecto'].dropna().drop_duplicates().sort_values().reset_index(drop=True)
                 df_proyectos_unicos = pd.DataFrame(proyectos_unicos_filtrados, columns=['Proyecto Único'])
                 
-                # 2. Usar st.columns para crear el layout con las dos tablas
                 col_unica, col_grilla = st.columns([1, 3])
                 
                 with col_unica:
@@ -644,30 +612,25 @@ def main_app():
                         hide_index=True
                     )
                     
-                    # Mostrar estadísticas rápidas
                     st.metric("Proyectos mostrados", len(df_proyectos_unicos))
                 
                 with col_grilla:
                     st.markdown("**Datos Completos de la Grilla**")
-                    # Mostrar el DataFrame filtrado
                     st.dataframe(
                         df_filtrado_final,
                         use_container_width=True,
                         hide_index=True
                     )
                     
-                    # Mostrar contador de resultados
                     total_original = len(df_grilla)
                     total_filtrado = len(df_filtrado_final)
                     st.caption(f"📊 Mostrando {total_filtrado} de {total_original} registros ({total_filtrado/total_original*100:.1f}%)")
             
-            # --- ESTADÍSTICAS DETALLADAS ---
             st.markdown("---")
             st.subheader("📈 Estadísticas")
             
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                # Total de proyectos únicos en los resultados filtrados
                 if 'Proyecto' in df_filtrado_final.columns:
                     proyectos_unicos = df_filtrado_final['Proyecto'].drop_duplicates()
                     total_proyectos_unicos = len(proyectos_unicos)
@@ -676,7 +639,6 @@ def main_app():
                     st.metric("Registros", len(df_filtrado_final))
                     
             with col2:
-                # Proyectos activos
                 if estado_col and 'Proyecto' in df_filtrado_final.columns:
                     df_sin_duplicados = df_filtrado_final.drop_duplicates(subset=['Proyecto'], keep='first')
                     if 'Activo' in df_sin_duplicados[estado_col].values:
@@ -688,7 +650,6 @@ def main_app():
                     st.metric("Registros Filtrados", len(df_filtrado_final))
                     
             with col3:
-                # Distribución por estado
                 if estado_col:
                     conteo_estados = df_filtrado_final[estado_col].value_counts()
                     if len(conteo_estados) > 0:
@@ -701,7 +662,6 @@ def main_app():
                     st.metric("Total Original", len(df_grilla))
                     
             with col4:
-                # NUEVO: Distribución por Alistamiento
                 if alistamiento_col:
                     conteo_alistamiento = df_filtrado_final[alistamiento_col].value_counts()
                     if len(conteo_alistamiento) > 0:
@@ -711,7 +671,6 @@ def main_app():
                     else:
                         st.metric("Alistamiento Principal", "Sin datos")
                 else:
-                    # Efectividad del filtro
                     total_original = len(df_grilla)
                     total_filtrado = len(df_filtrado_final)
                     porcentaje = (total_filtrado / total_original * 100) if total_original > 0 else 0
@@ -724,28 +683,144 @@ def main_app():
             st.error(f"Error al cargar el archivo: {e}")
 
     # ======================================================
-    # TAB 7: Cronograma de visitas (AHORA ES LA SÉPTIMA)
+    # TAB 7: Cronograma de visitas
     # ======================================================
     with tab7:
         st.subheader("📅 Cronograma de visitas")
         st.info("Programación de visitas de seguimiento e implementación metodologica Last Planner System en obra")
 
     # ======================================================
-    # TAB 8: Pull Planning (AHORA ES LA OCTAVA)
+    # TAB 8: Pull Planning
     # ======================================================
     with tab8:
         st.subheader("⏱️ Pull Planning")
         st.info("Pull planning en obra")
 
-
-
-
-
-
-
-
-
-
+    # ======================================================
+    # TAB 9: Gráfico Interactivo (NUEVA PESTAÑA)
+    # ======================================================
+    with tab9:
+        st.header("📊 Gráfico Interactivo")
+        
+        # Información sobre el gráfico
+        st.markdown("""
+        Este gráfico muestra información sobre estados por mes con puntos interactivos. 
+        Pasa el cursor sobre los puntos para ver detalles adicionales.
+        """)
+        
+        # Controles de configuración
+        col_config1, col_config2 = st.columns(2)
+        
+        with col_config1:
+            tamaño_punto = st.slider(
+                "Tamaño de los puntos",
+                min_value=5,
+                max_value=30,
+                value=15,
+                help="Ajusta el tamaño de los puntos en el gráfico"
+            )
+        
+        with col_config2:
+            opacidad_punto = st.slider(
+                "Opacidad de los puntos",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.85,
+                step=0.05,
+                help="Ajusta la transparencia de los puntos"
+            )
+        
+        # 1. Datos
+        data = {
+            'Orden': [1, 2, 3, 4],
+            'Fecha': ['Junio', 'Junio', 'Julio', 'Agosto'],
+            'Categoria': ['Sí', 'No', 'No', 'Sí'],
+            'Detalle': ['Observación 1', 'Observación 12', 'Observación 22', 'Nueva Observación Agosto']
+        }
+        df = pd.DataFrame(data)
+        
+        # Mostrar datos subyacentes
+        with st.expander("📋 Ver datos del gráfico"):
+            st.dataframe(df, use_container_width=True)
+        
+        # 2. Configuración de colores
+        colores = {'Sí': '#00CC96', 'No': '#EF553B'}
+        
+        # 3. Crear el gráfico
+        fig = px.scatter(
+            df, 
+            x="Fecha", 
+            y="Categoria", 
+            color="Categoria",
+            hover_name="Detalle",
+            color_discrete_map=colores,
+            template="plotly_white",
+            title="<b>Gráfico con Puntos Grandes e Interactivos</b>"
+        )
+        
+        # Ajustar el tamaño y apariencia de los puntos
+        fig.update_traces(
+            marker=dict(
+                size=tamaño_punto,
+                opacity=opacidad_punto,
+                line=dict(width=2, color='DarkSlateGrey')
+            )
+        )
+        
+        # 4. Fijar el orden de los ejes
+        fig.update_xaxes(
+            categoryorder='array', 
+            categoryarray=['Junio', 'Julio', 'Agosto'],
+            title_text="Meses"
+        )
+        
+        fig.update_yaxes(
+            categoryorder='array', 
+            categoryarray=['No', 'Sí'],
+            title_text="Estado"
+        )
+        
+        # Ajustar márgenes
+        fig.update_layout(
+            margin=dict(l=50, r=50, t=80, b=50),
+            height=500  # Altura fija para mejor visualización
+        )
+        
+        # Mostrar gráfico en Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Información adicional
+        with st.expander("ℹ️ Instrucciones de uso"):
+            st.markdown("""
+            ### Cómo usar este gráfico:
+            
+            **Interactividad:**
+            - 🖱️ **Pasa el cursor** sobre los puntos para ver detalles
+            - 🔍 **Haz zoom** manteniendo clic y arrastrando
+            - ↔️ **Desplázate** usando la rueda del ratón
+            - 📱 **Toca** en dispositivos móviles
+            
+            **Leyenda:**
+            - ✅ **Verde (Sí)**: Estado positivo
+            - ❌ **Rojo (No)**: Estado negativo
+            - 👆 **Haz clic** en la leyenda para mostrar/ocultar categorías
+            
+            **Funcionalidades adicionales:**
+            - 📥 **Descarga** la imagen usando el menú en la esquina superior derecha
+            - 🔄 **Restablece** la vista con el botón "Reset axes"
+            """)
+        
+        # Estadísticas rápidas
+        st.markdown("---")
+        col_stats1, col_stats2, col_stats3 = st.columns(3)
+        with col_stats1:
+            st.metric("Total de puntos", len(df))
+        with col_stats2:
+            conteo_si = (df['Categoria'] == 'Sí').sum()
+            st.metric("Estado 'Sí'", conteo_si)
+        with col_stats3:
+            conteo_no = (df['Categoria'] == 'No').sum()
+            st.metric("Estado 'No'", conteo_no)
 
 # ----------------------------
 # Ejecución principal
