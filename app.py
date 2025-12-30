@@ -732,10 +732,10 @@ def main_app():
         
         # 1. Datos
         data = {
-            'Orden': [1, 2, 3, 4],
-            'Fecha': ['Junio', 'Junio', 'Julio', 'Agosto'],
-            'Categoria': ['Sí', 'No', 'No', 'Sí'],
-            'Detalle': ['Observación 1', 'Observación 12', 'Observación 22', 'Nueva Observación Agosto']
+            'Orden': [1, 2, 3, 4,5],
+            'Fecha': ['Junio', 'Junio', 'Julio', 'Agosto','Agosto'],
+            'Categoria': ['Sí', 'No', 'No', 'Sí','Sí'],
+            'Detalle': ['Observación 1', 'Observación 12', 'Observación 22', 'Nueva Observación Agosto','Observación']
         }
         df = pd.DataFrame(data)
         
